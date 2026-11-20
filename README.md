@@ -1,0 +1,1 @@
+peletakan batu pertama
