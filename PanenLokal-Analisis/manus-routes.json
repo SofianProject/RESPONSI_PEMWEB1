@@ -1,0 +1,1 @@
+{"routes":[{"path":"/","title":"PanenLokal — Beranda"},{"path":"/katalog","title":"Katalog Panen"},{"path":"/food-rescue","title":"Food Rescue"},{"path":"/keranjang","title":"Keranjang dan Checkout Demo"},{"path":"/tentang","title":"Tentang PanenLokal"},{"path":"/produk/:id","title":"Detail Produk"},{"path":"/peran/:role","title":"Dasbor Demo per Peran"}]}
