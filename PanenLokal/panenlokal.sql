@@ -3,6 +3,8 @@
 -- SDG 2 Zero Hunger | Responsi Pemweb 1
 -- =============================================
 
+DROP DATABASE IF EXISTS panenlokal_db;
+
 CREATE DATABASE IF NOT EXISTS panenlokal_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;

@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $metode          = $_POST['metode'] ?? 'ambil';
     $pickup_point_id = !empty($_POST['pickup_point_id']) ? (int)$_POST['pickup_point_id'] : null;
     $alamat_tujuan   = trim($_POST['alamat_tujuan'] ?? '');
-    $jadwal          = !empty($_POST['jadwal']) ? trim($_POST['jadwal']) : null;
+    $jadwal          = !empty($_POST['jadwal']) ? date('Y-m-d H:i:s', strtotime($_POST['jadwal'])) : null;
     $catatan         = trim($_POST['catatan'] ?? '');
 
     if ($metode === 'ambil' && !$pickup_point_id) {
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO deliveries (order_id, metode, pickup_point_id, alamat_tujuan, jadwal, status)
                 VALUES (?, ?, ?, ?, ?, 'menunggu')
             ");
-            $ins_del->bind_param("isisss", $order_id, $metode, $pickup_point_id, $alamat_tujuan, $jadwal);
+            $ins_del->bind_param("isiss", $order_id, $metode, $pickup_point_id, $alamat_tujuan, $jadwal);
             $ins_del->execute();
 
             // 5. Insert ke payments
@@ -233,7 +233,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                         <div class="form-group">
                             <label class="form-label">Estimasi Jadwal Pengambilan/Pengantaran (Opsional)</label>
-                            <input type="datetime-local" name="jadwal" class="form-control">
+                            <input type="date" name="jadwal" class="form-control">
                         </div>
 
                         <div class="form-group">
