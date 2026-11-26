@@ -12,6 +12,10 @@ $pesan = $pesan_tipe = '';
 
 // Update profil
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf()) {
+        $pesan = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
+        $pesan_tipe = 'danger';
+    } else {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'update_info') {
@@ -58,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pesan_tipe = 'success';
         }
     }
+    }
 }
 
 // Ambil info terbaru
@@ -92,6 +97,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             <div class="card card-body">
                 <h3>Informasi Pribadi</h3>
                 <form method="POST">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="update_info">
                     <div class="form-group mt-2">
                         <label class="form-label">Username (Tidak dapat diubah)</label>
@@ -117,6 +123,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             <div class="card card-body">
                 <h3>Ganti Password</h3>
                 <form method="POST">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="ganti_password">
                     <div class="form-group mt-2">
                         <label class="form-label">Password Saat Ini *</label>

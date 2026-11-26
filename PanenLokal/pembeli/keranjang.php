@@ -28,6 +28,12 @@ $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type'
 
 // Handle aksi POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf()) {
+        $_SESSION['flash'] = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $_SESSION['flash_type'] = 'danger';
+        header('Location: ' . BASE_URL . '/pembeli/keranjang.php');
+        exit;
+    }
     $action = $_POST['action'] ?? '';
 
     if ($action === 'tambah') {
@@ -89,8 +95,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $up = $conn->prepare("UPDATE cart_items SET quantity = ? WHERE id = ?");
             $up->bind_param("di", $real_qty, $item_id);
             $up->execute();
-            $_SESSION['flash'] = 'Jumlah kuantitas berhasil diperbarui.';
+            $_SESSION['flash'] = $qty > $citem['stok_tersedia']
+                ? 'Jumlah kuantitas disesuaikan dengan stok tersedia (' . (float)$citem['stok_tersedia'] . ').'
+                : 'Jumlah kuantitas berhasil diperbarui.';
             $_SESSION['flash_type'] = 'success';
+        } elseif (!$citem) {
+            $_SESSION['flash'] = 'Item keranjang tidak ditemukan.';
+            $_SESSION['flash_type'] = 'danger';
+        } else {
+            $_SESSION['flash'] = 'Jumlah kuantitas harus lebih dari 0.';
+            $_SESSION['flash_type'] = 'danger';
         }
         header('Location: ' . BASE_URL . '/pembeli/keranjang.php');
         exit;
@@ -146,6 +160,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
         <?php if ($cart_items->num_rows > 0): ?>
         <div class="table-card">
+            <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -186,6 +201,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         </td>
                         <td>
                             <form method="POST" style="display:flex; align-items:center; gap:.3rem;">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="update">
                                 <input type="hidden" name="item_id" value="<?= $it['item_id'] ?>">
                                 <input type="number" name="quantity" class="form-control qty-input" value="<?= (float)$it['quantity'] ?>" min="0.1" max="<?= (float)$it['stok_tersedia'] ?>" step="0.1" style="width:85px; padding:.3rem;">
@@ -197,6 +213,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         </td>
                         <td>
                             <form method="POST">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="hapus">
                                 <input type="hidden" name="item_id" value="<?= $it['item_id'] ?>">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus item ini dari keranjang?')">Hapus</button>
@@ -214,9 +231,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                     </tr>
                 </tfoot>
             </table>
+            </div>
         </div>
 
-        <div class="d-flex justify-content:space-between; align-items:center; margin-top:1.5rem; flex-wrap:wrap; gap:1rem;">
+        <div class="d-flex justify-between align-center mt-3 flex-wrap gap-2">
             <a href="<?= BASE_URL ?>/katalog.php" class="btn btn-secondary">← Lanjut Belanja</a>
             <a href="<?= BASE_URL ?>/pembeli/checkout.php" class="btn btn-primary btn-lg">Lanjut ke Checkout →</a>
         </div>

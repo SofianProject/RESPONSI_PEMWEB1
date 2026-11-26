@@ -13,24 +13,32 @@ $stmt->close();
 $farmer_id = $fp['id'] ?? 0;
 
 $pesan = '';
+if (!empty($_SESSION['flash'])) {
+    $pesan = alert($_SESSION['flash'], $_SESSION['flash_type'] ?? 'success');
+    unset($_SESSION['flash'], $_SESSION['flash_type']);
+}
 
-// Proses hapus lahan
-if (isset($_GET['action']) && $_GET['action'] === 'hapus' && isset($_GET['id'])) {
-    $id = (int)$_GET['id'];
-    // Verifikasi kepemilikan
-    $chk = $conn->prepare("SELECT id FROM lands WHERE id = ? AND farmer_id = ?");
-    $chk->bind_param("ii", $id, $farmer_id);
-    $chk->execute();
-    if ($chk->get_result()->num_rows > 0) {
-        $del = $conn->prepare("DELETE FROM lands WHERE id = ? AND farmer_id = ?");
-        $del->bind_param("ii", $id, $farmer_id);
-        $del->execute();
-        $del->close();
-        $pesan = alert('Lahan berhasil dihapus.', 'success');
+// Proses hapus lahan (POST + CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'hapus') {
+    if (!verify_csrf()) {
+        $pesan = alert('Permintaan tidak valid (token keamanan tidak cocok).', 'danger');
     } else {
-        $pesan = alert('Lahan tidak ditemukan atau bukan milik Anda.', 'danger');
+        $id = (int)($_POST['id'] ?? 0);
+        // Verifikasi kepemilikan
+        $chk = $conn->prepare("SELECT id FROM lands WHERE id = ? AND farmer_id = ?");
+        $chk->bind_param("ii", $id, $farmer_id);
+        $chk->execute();
+        if ($chk->get_result()->num_rows > 0) {
+            $del = $conn->prepare("DELETE FROM lands WHERE id = ? AND farmer_id = ?");
+            $del->bind_param("ii", $id, $farmer_id);
+            $del->execute();
+            $del->close();
+            $pesan = alert('Lahan berhasil dihapus.', 'success');
+        } else {
+            $pesan = alert('Lahan tidak ditemukan atau bukan milik Anda.', 'danger');
+        }
+        $chk->close();
     }
-    $chk->close();
 }
 
 // Ambil daftar lahan
@@ -60,15 +68,19 @@ require_once __DIR__ . '/../includes/navbar.php';
     </ul>
   </aside>
   <main class="dashboard-main">
-    <div class="section-header">
-      <h1 class="page-title">🌍 Daftar Lahan</h1>
+    <div class="dashboard-header d-flex justify-between align-center flex-wrap gap-2">
+      <div>
+        <h1 class="page-title">🌍 Daftar Lahan</h1>
+        <p class="page-subtitle mb-0">Kelola lokasi dan luas lahan pertanian Anda.</p>
+      </div>
       <a href="<?= BASE_URL ?>/petani/tambah_lahan.php" class="btn btn-primary">+ Tambah Lahan</a>
     </div>
 
     <?= $pesan ?>
 
-    <div class="table-responsive">
-      <table class="data-table">
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="data-table petani-table">
         <thead>
           <tr>
             <th>#</th>
@@ -92,15 +104,19 @@ require_once __DIR__ . '/../includes/navbar.php';
             <td><?= sanitize(truncate_text($l['keterangan'] ?? '', 60)) ?></td>
             <td class="action-btns">
               <a href="<?= BASE_URL ?>/petani/edit_lahan.php?id=<?= (int)$l['id'] ?>" class="btn btn-xs btn-outline-primary">Edit</a>
-              <a href="<?= BASE_URL ?>/petani/lahan.php?action=hapus&id=<?= (int)$l['id'] ?>"
-                 class="btn btn-xs btn-outline-danger"
-                 onclick="return confirm('Yakin hapus lahan ini?')">Hapus</a>
+              <form method="POST" style="display:inline;">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="hapus">
+                <input type="hidden" name="id" value="<?= (int)$l['id'] ?>">
+                <button type="submit" class="btn btn-xs btn-outline-danger" onclick="return confirm('Yakin hapus lahan ini?')">Hapus</button>
+              </form>
             </td>
           </tr>
           <?php endforeach; ?>
           <?php endif; ?>
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   </main>
 </div>

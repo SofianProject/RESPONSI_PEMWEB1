@@ -46,19 +46,23 @@ if (!$order) {
 $pesan = '';
 // Aksi update status pesanan (misal petani menandai sudah diproses atau siap diambil)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_status'])) {
-    $new_st = $_POST['action_status'];
-    if (in_array($new_st, ['diproses', 'siap_diambil', 'dikirim', 'selesai'])) {
-        $up = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
-        $up->bind_param("si", $new_st, $order_id);
-        $up->execute();
+    if (!verify_csrf()) {
+        $pesan = alert('Permintaan tidak valid (token keamanan tidak cocok).', 'danger');
+    } else {
+        $new_st = $_POST['action_status'];
+        if (in_array($new_st, ['diproses', 'siap_diambil', 'dikirim', 'selesai'])) {
+            $up = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
+            $up->bind_param("si", $new_st, $order_id);
+            $up->execute();
 
-        $up_d = $conn->prepare("UPDATE deliveries SET status = ? WHERE order_id = ?");
-        $up_d->bind_param("si", $new_st, $order_id);
-        $up_d->execute();
+            $up_d = $conn->prepare("UPDATE deliveries SET status = ? WHERE order_id = ?");
+            $up_d->bind_param("si", $new_st, $order_id);
+            $up_d->execute();
 
-        $order['status'] = $new_st;
-        $order['delivery_status'] = $new_st;
-        $pesan = alert("Status pesanan berhasil diperbarui menjadi: " . ucfirst(str_replace('_',' ',$new_st)), 'success');
+            $order['status'] = $new_st;
+            $order['delivery_status'] = $new_st;
+            $pesan = alert("Status pesanan berhasil diperbarui menjadi: " . ucfirst(str_replace('_',' ',$new_st)), 'success');
+        }
     }
 }
 
@@ -175,6 +179,7 @@ require_once __DIR__ . '/../includes/navbar.php';
       <h4>Perbarui Tahap Pemrosesan Hasil Tani</h4>
       <p class="text-muted" style="font-size:.9rem;">Perbarui status untuk memberitahu konsumen perkembangan panen & pemenuhan pesanan.</p>
       <form method="POST" class="d-flex gap-2 flex-wrap">
+        <?= csrf_field() ?>
         <?php if ($order['status'] === 'dibayar'): ?>
           <button type="submit" name="action_status" value="diproses" class="btn btn-primary" onclick="return confirm('Mulai siapkan/proses panen ini?')">📦 Tandai Diproses / Disiapkan</button>
         <?php endif; ?>

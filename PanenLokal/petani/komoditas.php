@@ -7,29 +7,35 @@ if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 $page_title = 'Kelola Komoditas';
 cek_role('petani');
 
-$stmt = $conn->prepare("SELECT id FROM farmer_profiles WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$fp = $stmt->get_result()->fetch_assoc();
-$farmer_id = $fp['id'] ?? 0;
+$fp = get_farmer_profile($conn, $_SESSION['user_id']);
+$farmer_id = $fp['id'];
+$is_verified = ($fp['status_verifikasi'] === 'terverifikasi');
 
 $pesan = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
 $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type']);
 
-// Toggle status komoditas
-if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'toggle') {
-    $cid = (int)$_GET['id'];
-    $cur = $conn->prepare("SELECT status_komoditas FROM commodities WHERE id = ? AND farmer_id = ?");
-    $cur->bind_param("ii", $cid, $farmer_id);
-    $cur->execute();
-    $cdata = $cur->get_result()->fetch_assoc();
-    if ($cdata) {
-        $new_st = $cdata['status_komoditas'] === 'aktif' ? 'nonaktif' : 'aktif';
-        $up = $conn->prepare("UPDATE commodities SET status_komoditas = ? WHERE id = ?");
-        $up->bind_param("si", $new_st, $cid);
-        $up->execute();
-        $_SESSION['flash'] = 'Status komoditas berhasil diubah.';
-        $_SESSION['flash_type'] = 'success';
+// Toggle status komoditas (POST + CSRF + cek verifikasi)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle') {
+    if (!verify_csrf()) {
+        $_SESSION['flash'] = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $_SESSION['flash_type'] = 'danger';
+    } elseif (!$is_verified) {
+        $_SESSION['flash'] = 'Akun usaha tani Anda belum terverifikasi admin sehingga tidak dapat mengubah status komoditas.';
+        $_SESSION['flash_type'] = 'danger';
+    } else {
+        $cid = (int)($_POST['id'] ?? 0);
+        $cur = $conn->prepare("SELECT status_komoditas FROM commodities WHERE id = ? AND farmer_id = ?");
+        $cur->bind_param("ii", $cid, $farmer_id);
+        $cur->execute();
+        $cdata = $cur->get_result()->fetch_assoc();
+        if ($cdata) {
+            $new_st = $cdata['status_komoditas'] === 'aktif' ? 'nonaktif' : 'aktif';
+            $up = $conn->prepare("UPDATE commodities SET status_komoditas = ? WHERE id = ?");
+            $up->bind_param("si", $new_st, $cid);
+            $up->execute();
+            $_SESSION['flash'] = 'Status komoditas berhasil diubah.';
+            $_SESSION['flash_type'] = 'success';
+        }
     }
     header('Location: ' . BASE_URL . '/petani/komoditas.php');
     exit;
@@ -58,7 +64,7 @@ require_once __DIR__ . '/../includes/navbar.php';
     </ul>
   </aside>
   <main class="dashboard-main">
-    <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="dashboard-header d-flex justify-between align-center flex-wrap gap-2">
       <div>
         <h1>🥦 Kelola Komoditas</h1>
         <p class="text-muted">Daftar jenis hasil tani yang Anda tawarkan.</p>
@@ -66,10 +72,14 @@ require_once __DIR__ . '/../includes/navbar.php';
       <a href="<?= BASE_URL ?>/petani/tambah_komoditas.php" class="btn btn-primary">+ Tambah Komoditas</a>
     </div>
 
+    <?php if (!$is_verified): ?>
+      <div class="alert alert-warning">⏳ Akun usaha tani Anda berstatus <strong><?= sanitize($fp['status_verifikasi']) ?></strong>. Penambahan atau pengubahan komoditas aktif setelah diverifikasi admin.</div>
+    <?php endif; ?>
+
     <?php if ($pesan): ?><?= alert($pesan, $pesan_tipe) ?><?php endif; ?>
 
     <div class="table-card">
-      <table>
+      <table class="petani-table">
         <thead>
           <tr>
             <th>Gambar</th>
@@ -102,9 +112,14 @@ require_once __DIR__ . '/../includes/navbar.php';
             <td>
               <div class="d-flex gap-1">
                 <a href="<?= BASE_URL ?>/petani/edit_komoditas.php?id=<?= $c['id'] ?>" class="btn btn-sm btn-info">Edit</a>
-                <a href="?action=toggle&id=<?= $c['id'] ?>" class="btn btn-sm <?= $c['status_komoditas'] === 'aktif' ? 'btn-warning' : 'btn-success' ?>">
-                  <?= $c['status_komoditas'] === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' ?>
-                </a>
+                <form method="POST" style="display:inline;">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="action" value="toggle">
+                  <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
+                  <button type="submit" class="btn btn-sm <?= $c['status_komoditas'] === 'aktif' ? 'btn-warning' : 'btn-success' ?>" <?= !$is_verified ? 'disabled' : '' ?>>
+                    <?= $c['status_komoditas'] === 'aktif' ? 'Nonaktifkan' : 'Aktifkan' ?>
+                  </button>
+                </form>
               </div>
             </td>
           </tr>

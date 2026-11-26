@@ -45,6 +45,7 @@ $items = $q_items->get_result();
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
+<div class="content-wrapper" style="padding-top: 0;">
 <div class="container section">
     <div style="display:flex; justify-content:space-between; align-items:center; max-width:750px; margin:0 auto 1rem;" class="no-print">
         <a href="<?= $user['role'] === 'admin' ? BASE_URL . '/admin/pesanan.php' : BASE_URL . '/pembeli/detail_pesanan.php?id=' . $order_id ?>" class="btn btn-secondary btn-sm">← Kembali</a>
@@ -61,7 +62,26 @@ require_once __DIR__ . '/../includes/header.php';
             <div style="text-align:right;">
                 <div class="invoice-code"><?= sanitize($order['kode_pesanan']) ?></div>
                 <div style="font-size:.85rem; color:var(--gray-500);">Tanggal: <?= format_tanggal($order['tanggal_pesanan'], 'd F Y H:i') ?></div>
-                <span class="badge badge-success mt-1">LUNAS / DIVERIFIKASI</span>
+                <?php
+                $pay_st = $order['status_pembayaran'] ?? '';
+                if ($pay_st === 'terverifikasi' || in_array($order['status'], ['dibayar', 'diproses', 'siap_diambil', 'dikirim', 'selesai'], true)) {
+                    $inv_badge_cls = 'badge-success';
+                    $inv_badge_lbl = 'LUNAS / DIVERIFIKASI';
+                } elseif ($pay_st === 'ditolak') {
+                    $inv_badge_cls = 'badge-danger';
+                    $inv_badge_lbl = 'PEMBAYARAN DITOLAK';
+                } elseif ($order['status'] === 'dibatalkan') {
+                    $inv_badge_cls = 'badge-danger';
+                    $inv_badge_lbl = 'DIBATALKAN';
+                } elseif ($order['status'] === 'menunggu_verifikasi') {
+                    $inv_badge_cls = 'badge-info';
+                    $inv_badge_lbl = 'MENUNGGU VERIFIKASI';
+                } else {
+                    $inv_badge_cls = 'badge-warning';
+                    $inv_badge_lbl = 'MENUNGGU PEMBAYARAN';
+                }
+                ?>
+                <span class="badge <?= $inv_badge_cls ?> mt-1"><?= $inv_badge_lbl ?></span>
             </div>
         </div>
 

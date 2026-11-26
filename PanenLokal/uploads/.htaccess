@@ -1,0 +1,28 @@
+# Nonaktifkan directory listing pada folder uploads
+Options -Indexes
+
+# Hapus handler eksekusi script agar file PHP/script tidak dieksekusi
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .cgi .pl .py .sh
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phar
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+
+# Tolak akses langsung ke file script atau file konfigurasi
+<FilesMatch "\.(?i:php|phtml|php[0-9]|phar|cgi|pl|py|asp|aspx|jsp|sh|bat|exe|htaccess|htpasswd)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>

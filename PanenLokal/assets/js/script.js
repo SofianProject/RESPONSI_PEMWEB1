@@ -9,14 +9,44 @@ function toggleNav() {
 
 /* ---------- Auto-dismiss alerts ---------- */
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.alert').forEach(function (el) {
+    document.querySelectorAll('.alert.alert-dismissible').forEach(function (el) {
         setTimeout(function () {
+            if (!el.isConnected) return;
             el.style.transition = 'opacity .5s';
             el.style.opacity = '0';
-            setTimeout(function () { el.remove(); }, 500);
+            setTimeout(function () {
+                if (el.isConnected) el.remove();
+            }, 500);
         }, 4000);
     });
 });
+
+/* ---------- Form error helpers ---------- */
+function clearErrors(scope) {
+    const root = scope || document;
+    root.querySelectorAll('.is-invalid').forEach(function (el) {
+        el.classList.remove('is-invalid');
+    });
+    root.querySelectorAll('.form-error').forEach(function (el) {
+        el.remove();
+    });
+}
+
+function showError(el, message) {
+    if (!el) return;
+    el.classList.add('is-invalid');
+    const err = document.createElement('div');
+    err.className = 'form-error';
+    err.textContent = message;
+    const group = el.closest('.form-group');
+    if (group) {
+        const existing = group.querySelector('.form-error');
+        if (existing) existing.remove();
+        group.appendChild(err);
+    } else {
+        el.insertAdjacentElement('afterend', err);
+    }
+}
 
 /* ---------- Form: Login validation ---------- */
 function validateLogin(e) {
@@ -108,18 +138,26 @@ function attachCharCounter(textareaId, counterId, max) {
 }
 
 /* ---------- Countdown timer (Food Rescue) ---------- */
-function startCountdown(elementId, deadlineISO) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    const deadline = new Date(deadlineISO).getTime();
+function startCountdown(elementOrId, deadlineISO) {
+    const el = typeof elementOrId === 'string'
+        ? document.getElementById(elementOrId)
+        : elementOrId;
+    if (!el || !deadlineISO) return;
+    const normalized = String(deadlineISO).includes('T')
+        ? String(deadlineISO)
+        : String(deadlineISO).replace(' ', 'T');
+    const deadline = new Date(normalized).getTime();
+    if (Number.isNaN(deadline)) return;
     function tick() {
         const now  = Date.now();
         const diff = deadline - now;
         if (diff <= 0) { el.innerHTML = '<span class="badge badge-danger">Penawaran Berakhir</span>'; return; }
-        const h = Math.floor(diff / 3600000);
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
         const m = Math.floor((diff % 3600000) / 60000);
         const s = Math.floor((diff % 60000) / 1000);
-        el.innerHTML = '<span class="countdown"><span class="countdown-unit">' + pad(h) + 'j</span><span class="countdown-unit">' + pad(m) + 'm</span><span class="countdown-unit">' + pad(s) + 'd</span></span>';
+        const dayUnit = d > 0 ? '<span class="countdown-unit">' + d + 'hr</span>' : '';
+        el.innerHTML = '<span class="countdown">' + dayUnit + '<span class="countdown-unit">' + pad(h) + 'j</span><span class="countdown-unit">' + pad(m) + 'm</span><span class="countdown-unit">' + pad(s) + 'd</span></span>';
         setTimeout(tick, 1000);
     }
     tick();
@@ -150,11 +188,85 @@ function togglePetaniFields() {
     wrap.style.display = role.value === 'petani' ? 'block' : 'none';
 }
 
+/* ---------- Stats Count-Up Animation ---------- */
+function animateCountUp(el, target, duration) {
+    if (!el) return;
+    if (target <= 0) {
+        el.textContent = '0';
+        return;
+    }
+    const start = performance.now();
+    function frame(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(target * eased);
+        el.textContent = current.toLocaleString('id-ID');
+        if (progress < 1) {
+            requestAnimationFrame(frame);
+        } else {
+            el.textContent = target.toLocaleString('id-ID');
+        }
+    }
+    requestAnimationFrame(frame);
+}
+
+function initCountUp() {
+    const counters = document.querySelectorAll('[data-countup]');
+    if (!counters.length) return;
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+        counters.forEach(function (el) {
+            const target = parseInt(el.getAttribute('data-countup'), 10);
+            if (!Number.isNaN(target)) el.textContent = target.toLocaleString('id-ID');
+        });
+        return;
+    }
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(function (entries, obs) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                const el = entry.target;
+                if (el.dataset.counted === '1') return;
+                el.dataset.counted = '1';
+                const target = parseInt(el.getAttribute('data-countup'), 10);
+                if (!Number.isNaN(target)) {
+                    animateCountUp(el, target, 1200);
+                }
+                obs.unobserve(el);
+            });
+        }, { threshold: 0.25 });
+
+        counters.forEach(function (el) {
+            observer.observe(el);
+        });
+    } else {
+        counters.forEach(function (el) {
+            const target = parseInt(el.getAttribute('data-countup'), 10);
+            if (!Number.isNaN(target)) animateCountUp(el, target, 1200);
+        });
+    }
+}
+
 /* ---------- Attach all handlers on ready ---------- */
 document.addEventListener('DOMContentLoaded', function () {
     // Login form
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.addEventListener('submit', validateLogin);
+
+    // Toggle show/hide password on login
+    const togglePwBtn = document.getElementById('toggle-password');
+    const pwInput = document.getElementById('password');
+    if (togglePwBtn && pwInput) {
+        togglePwBtn.addEventListener('click', function () {
+            const show = pwInput.type === 'password';
+            pwInput.type = show ? 'text' : 'password';
+            togglePwBtn.classList.toggle('is-visible', show);
+            togglePwBtn.setAttribute('aria-pressed', show ? 'true' : 'false');
+            togglePwBtn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+        });
+    }
 
     // Register form
     const regForm = document.getElementById('register-form');
@@ -181,18 +293,51 @@ document.addEventListener('DOMContentLoaded', function () {
     // Char counter for review
     attachCharCounter('komentar', 'komentar-counter', 500);
 
-    // Upload area click
+    // Countdown timers (Food Rescue)
+    document.querySelectorAll('[data-countdown]').forEach(function (el) {
+        const deadline = el.getAttribute('data-countdown');
+        if (deadline) {
+            startCountdown(el, deadline);
+        }
+    });
+
+    // Stats count-up animation
+    initCountUp();
+
+    // Upload area click & payment form validation
     const uploadArea = document.getElementById('upload-area');
+    const paymentForm = document.getElementById('payment-form');
     if (uploadArea) {
-        uploadArea.addEventListener('click', function () {
-            document.getElementById('bukti_pembayaran')?.click();
-        });
         const fileInput = document.getElementById('bukti_pembayaran');
+        uploadArea.addEventListener('click', function (e) {
+            if (fileInput && e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
         if (fileInput) {
             fileInput.addEventListener('change', function () {
                 const name = this.files[0]?.name || 'Belum dipilih';
                 const info = document.getElementById('upload-info');
                 if (info) info.textContent = name;
+                if (this.files && this.files.length > 0) {
+                    uploadArea.classList.remove('is-invalid');
+                    clearErrors(paymentForm || uploadArea.closest('form') || document);
+                }
+            });
+        }
+        if (paymentForm && fileInput) {
+            paymentForm.addEventListener('submit', function (e) {
+                clearErrors(paymentForm);
+                uploadArea.classList.remove('is-invalid');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    uploadArea.classList.add('is-invalid');
+                    showError(fileInput, 'Silakan pilih berkas bukti pembayaran terlebih dahulu.');
+                    e.preventDefault();
+                    return;
+                }
+                if (!confirmAction('Kirim bukti pembayaran ini?')) {
+                    e.preventDefault();
+                }
             });
         }
     }

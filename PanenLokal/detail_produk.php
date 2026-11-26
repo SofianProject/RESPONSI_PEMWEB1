@@ -99,9 +99,7 @@ require_once __DIR__ . '/includes/navbar.php';
                                     <div style="font-size:1.5rem;font-weight:800;"><?= format_rupiah($p['harga_rescue']) ?>/<?= sanitize($p['satuan']) ?></div>
                                     <div style="text-decoration:line-through;opacity:.7;"><?= format_rupiah($p['harga_normal']) ?></div>
                                     <?php if ($p['batas_rescue']): ?>
-                                        <div style="margin-top:.4rem;font-size:.85rem;">⏱ Berakhir: <span id="cd-main"></span>
-                                            <script>startCountdown('cd-main','<?= $p['batas_rescue'] ?>')</script>
-                                        </div>
+                                        <div style="margin-top:.4rem;font-size:.85rem;">⏱ Berakhir: <span id="cd-main" data-countdown="<?= sanitize($p['batas_rescue']) ?>"></span></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -129,6 +127,7 @@ require_once __DIR__ . '/includes/navbar.php';
                     ?>
                     <?php if ($can_order): ?>
                     <form method="POST" action="<?= BASE_URL ?>/pembeli/keranjang.php" style="margin-top:1rem;">
+                        <?= csrf_field() ?>
                         <input type="hidden" name="action" value="tambah">
                         <input type="hidden" name="batch_id" value="<?= $p['id'] ?>">
                         <div class="form-group">

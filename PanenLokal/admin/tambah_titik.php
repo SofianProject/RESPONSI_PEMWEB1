@@ -9,23 +9,28 @@ cek_role('admin');
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_titik = trim($_POST['nama_titik'] ?? '');
-    $alamat     = trim($_POST['alamat'] ?? '');
-    $deskripsi  = trim($_POST['deskripsi'] ?? '');
-    $status     = isset($_POST['status_aktif']) ? 1 : 0;
-
-    if (!$nama_titik || !$alamat) {
-        $error = 'Nama titik dan alamat wajib diisi.';
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
     } else {
-        $stmt = $conn->prepare("INSERT INTO pickup_points (nama_titik, alamat, deskripsi, status_aktif) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param('sssi', $nama_titik, $alamat, $deskripsi, $status);
-        if ($stmt->execute()) {
-            $_SESSION['flash'] = 'Titik pengambilan berhasil ditambahkan!';
-            $_SESSION['flash_type'] = 'success';
-            header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
-            exit;
+        $nama_titik = trim($_POST['nama_titik'] ?? '');
+        $alamat     = trim($_POST['alamat'] ?? '');
+        $deskripsi  = trim($_POST['deskripsi'] ?? '');
+        $status     = isset($_POST['status_aktif']) ? 1 : 0;
+
+        if (!$nama_titik || !$alamat) {
+            $error = 'Nama titik dan alamat wajib diisi.';
         } else {
-            $error = 'Gagal menyimpan data: ' . $conn->error;
+            $stmt = $conn->prepare("INSERT INTO pickup_points (nama_titik, alamat, deskripsi, status_aktif) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param('sssi', $nama_titik, $alamat, $deskripsi, $status);
+            if ($stmt->execute()) {
+                $_SESSION['flash'] = 'Titik pengambilan berhasil ditambahkan!';
+                $_SESSION['flash_type'] = 'success';
+                header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
+                exit;
+            } else {
+                error_log('Tambah titik error: ' . $conn->error);
+                $error = 'Gagal menyimpan data titik pengambilan. Silakan coba lagi.';
+            }
         }
     }
 }
@@ -55,6 +60,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
         <div class="card card-body" style="max-width: 600px;">
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label class="form-label">Nama Titik *</label>
                     <input type="text" name="nama_titik" class="form-control" required placeholder="Contoh: Posko Pusat PanenLokal" value="<?= sanitize($_POST['nama_titik'] ?? '') ?>">

@@ -32,36 +32,41 @@ $items = $items_q->get_result();
 // Proses verifikasi
 $pesan = $pesan_tipe = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action        = $_POST['action'] ?? '';
-    $catatan_admin = trim($_POST['catatan_admin'] ?? '');
-    $admin_id      = $_SESSION['user_id'];
-    $order_id_pay  = $pay['order_id'];
+    if (!verify_csrf()) {
+        $pesan = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $pesan_tipe = 'danger';
+    } else {
+        $action        = $_POST['action'] ?? '';
+        $catatan_admin = trim($_POST['catatan_admin'] ?? '');
+        $admin_id      = $_SESSION['user_id'];
+        $order_id_pay  = $pay['order_id'];
 
-    if ($action === 'terima') {
-        $upd_pay = $conn->prepare("UPDATE payments SET status_pembayaran='terverifikasi', verified_by=?, verified_at=NOW(), catatan_admin=? WHERE id=?");
-        $upd_pay->bind_param('isi', $admin_id, $catatan_admin, $id);
-        $upd_pay->execute();
-        $upd_ord = $conn->prepare("UPDATE orders SET status='dibayar' WHERE id=?");
-        $upd_ord->bind_param('i', $order_id_pay);
-        $upd_ord->execute();
-        $pesan = 'Pembayaran berhasil diverifikasi. Pesanan diubah ke status Dibayar.';
-        $pesan_tipe = 'success';
-        // Refresh data
-        $stmt->execute();
-        $pay = $stmt->get_result()->fetch_assoc();
-    } elseif ($action === 'tolak') {
-        if ($catatan_admin === '') { $pesan = 'Alasan penolakan harus diisi.'; $pesan_tipe = 'danger'; }
-        else {
-            $upd_pay = $conn->prepare("UPDATE payments SET status_pembayaran='ditolak', verified_by=?, verified_at=NOW(), catatan_admin=? WHERE id=?");
+        if ($action === 'terima') {
+            $upd_pay = $conn->prepare("UPDATE payments SET status_pembayaran='terverifikasi', verified_by=?, verified_at=NOW(), catatan_admin=? WHERE id=?");
             $upd_pay->bind_param('isi', $admin_id, $catatan_admin, $id);
             $upd_pay->execute();
-            $upd_ord = $conn->prepare("UPDATE orders SET status='menunggu_pembayaran' WHERE id=?");
+            $upd_ord = $conn->prepare("UPDATE orders SET status='dibayar' WHERE id=?");
             $upd_ord->bind_param('i', $order_id_pay);
             $upd_ord->execute();
-            $pesan = 'Pembayaran ditolak. Pembeli dapat mengunggah ulang bukti.';
-            $pesan_tipe = 'warning';
+            $pesan = 'Pembayaran berhasil diverifikasi. Pesanan diubah ke status Dibayar.';
+            $pesan_tipe = 'success';
+            // Refresh data
             $stmt->execute();
             $pay = $stmt->get_result()->fetch_assoc();
+        } elseif ($action === 'tolak') {
+            if ($catatan_admin === '') { $pesan = 'Alasan penolakan harus diisi.'; $pesan_tipe = 'danger'; }
+            else {
+                $upd_pay = $conn->prepare("UPDATE payments SET status_pembayaran='ditolak', verified_by=?, verified_at=NOW(), catatan_admin=? WHERE id=?");
+                $upd_pay->bind_param('isi', $admin_id, $catatan_admin, $id);
+                $upd_pay->execute();
+                $upd_ord = $conn->prepare("UPDATE orders SET status='menunggu_pembayaran' WHERE id=?");
+                $upd_ord->bind_param('i', $order_id_pay);
+                $upd_ord->execute();
+                $pesan = 'Pembayaran ditolak. Pembeli dapat mengunggah ulang bukti.';
+                $pesan_tipe = 'warning';
+                $stmt->execute();
+                $pay = $stmt->get_result()->fetch_assoc();
+            }
         }
     }
 }
@@ -149,6 +154,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         <div class="card card-body mt-3">
             <h4>Tindakan Verifikasi</h4>
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label class="form-label">Catatan Admin (wajib jika menolak)</label>
                     <textarea name="catatan_admin" class="form-control" rows="3" placeholder="Alasan penolakan atau catatan..."><?= sanitize($pay['catatan_admin'] ?? '') ?></textarea>

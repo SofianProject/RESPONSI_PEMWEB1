@@ -49,86 +49,108 @@ $points = $conn->query("SELECT id, nama_titik, alamat FROM pickup_points WHERE s
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $metode          = $_POST['metode'] ?? 'ambil';
-    $pickup_point_id = !empty($_POST['pickup_point_id']) ? (int)$_POST['pickup_point_id'] : null;
-    $alamat_tujuan   = trim($_POST['alamat_tujuan'] ?? '');
-    $jadwal          = !empty($_POST['jadwal']) ? date('Y-m-d H:i:s', strtotime($_POST['jadwal'])) : null;
-    $catatan         = trim($_POST['catatan'] ?? '');
-
-    if ($metode === 'ambil' && !$pickup_point_id) {
-        $error = 'Silakan pilih titik pengambilan yang diinginkan.';
-    } elseif ($metode === 'antar' && !$alamat_tujuan) {
-        $error = 'Alamat tujuan pengantaran wajib diisi.';
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
     } else {
-        // Transaksi checkout database
-        $conn->begin_transaction();
-        try {
-            // 1. Validasi stok terkini semua item
-            foreach ($cart_items as $it) {
-                $st_chk = $conn->prepare("SELECT stok_tersedia FROM harvest_batches WHERE id = ? FOR UPDATE");
-                $st_chk->bind_param("i", $it['batch_id']);
-                $st_chk->execute();
-                $cur_st = $st_chk->get_result()->fetch_assoc()['stok_tersedia'] ?? 0;
-                if ($cur_st < $it['quantity']) {
-                    throw new Exception("Maaf, stok untuk " . $it['nama_komoditas'] . " tidak mencukupi (tersedia: $cur_st).");
+        $metode          = $_POST['metode'] ?? 'ambil';
+        $pickup_point_id = !empty($_POST['pickup_point_id']) ? (int)$_POST['pickup_point_id'] : null;
+        $alamat_tujuan   = trim($_POST['alamat_tujuan'] ?? '');
+        $raw_jadwal      = trim($_POST['jadwal'] ?? '');
+        $jadwal          = null;
+        $catatan         = trim($_POST['catatan'] ?? '');
+
+        if ($raw_jadwal !== '') {
+            $dt = DateTime::createFromFormat('Y-m-d', $raw_jadwal);
+            if (!$dt || $dt->format('Y-m-d') !== $raw_jadwal) {
+                $error = 'Format tanggal jadwal tidak valid.';
+            } elseif ($raw_jadwal < date('Y-m-d')) {
+                $error = 'Tanggal jadwal tidak boleh di masa lalu.';
+            } else {
+                $jadwal = $raw_jadwal . ' 00:00:00';
+            }
+        }
+
+        if ($error !== '') {
+            // Biarkan pesan error tanggal tampil
+        } elseif ($metode === 'ambil' && !$pickup_point_id) {
+            $error = 'Silakan pilih titik pengambilan yang diinginkan.';
+        } elseif ($metode === 'antar' && !$alamat_tujuan) {
+            $error = 'Alamat tujuan pengantaran wajib diisi.';
+        } else {
+            // Transaksi checkout database
+            $conn->begin_transaction();
+            try {
+                // 1. Validasi stok terkini semua item
+                foreach ($cart_items as $it) {
+                    $st_chk = $conn->prepare("SELECT stok_tersedia FROM harvest_batches WHERE id = ? FOR UPDATE");
+                    $st_chk->bind_param("i", $it['batch_id']);
+                    $st_chk->execute();
+                    $cur_st = $st_chk->get_result()->fetch_assoc()['stok_tersedia'] ?? 0;
+                    if ($cur_st < $it['quantity']) {
+                        throw new Exception("Maaf, stok untuk " . $it['nama_komoditas'] . " tidak mencukupi (tersedia: $cur_st).");
+                    }
                 }
+
+                // 2. Insert ke orders
+                $kode_pesanan = generate_kode_pesanan();
+                $ins_ord = $conn->prepare("
+                    INSERT INTO orders (buyer_id, kode_pesanan, total_amount, status, catatan)
+                    VALUES (?, ?, ?, 'menunggu_pembayaran', ?)
+                ");
+                $ins_ord->bind_param("isds", $buyer_id, $kode_pesanan, $total_amount, $catatan);
+                $ins_ord->execute();
+                $order_id = $conn->insert_id;
+
+                // 3. Insert ke order_items & potong stok
+                $ins_item = $conn->prepare("
+                    INSERT INTO order_items (order_id, batch_id, nama_produk_snapshot, satuan_snapshot, quantity, harga_satuan, is_rescue)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+                $dec_stok = $conn->prepare("UPDATE harvest_batches SET stok_tersedia = stok_tersedia - ? WHERE id = ?");
+
+                foreach ($cart_items as $it) {
+                    $ins_item->bind_param("iissddi", $order_id, $it['batch_id'], $it['nama_komoditas'], $it['satuan'], $it['quantity'], $it['effective_price'], $it['is_rescue_applied']);
+                    $ins_item->execute();
+
+                    $dec_stok->bind_param("di", $it['quantity'], $it['batch_id']);
+                    $dec_stok->execute();
+                }
+
+                // 4. Insert ke deliveries
+                $ins_del = $conn->prepare("
+                    INSERT INTO deliveries (order_id, metode, pickup_point_id, alamat_tujuan, jadwal, status)
+                    VALUES (?, ?, ?, ?, ?, 'menunggu')
+                ");
+                $ins_del->bind_param("isiss", $order_id, $metode, $pickup_point_id, $alamat_tujuan, $jadwal);
+                $ins_del->execute();
+
+                // 5. Insert ke payments
+                $ins_pay = $conn->prepare("
+                    INSERT INTO payments (order_id, nominal, status_pembayaran)
+                    VALUES (?, ?, 'menunggu')
+                ");
+                $ins_pay->bind_param("id", $order_id, $total_amount);
+                $ins_pay->execute();
+
+                // 6. Kosongkan cart pembeli
+                $del_cart = $conn->prepare("DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE buyer_id = ?)");
+                $del_cart->bind_param("i", $buyer_id);
+                $del_cart->execute();
+
+                $conn->commit();
+
+                $_SESSION['flash'] = "Pesanan berhasil dibuat dengan kode: $kode_pesanan. Silakan unggah bukti transfer pembayaran.";
+                $_SESSION['flash_type'] = "success";
+                header("Location: " . BASE_URL . "/pembeli/pembayaran.php?id=" . $order_id);
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $conn->rollback();
+                error_log('Checkout SQL error: ' . $e->getMessage());
+                $error = 'Terjadi kesalahan saat memproses pesanan. Silakan coba lagi.';
+            } catch (Exception $e) {
+                $conn->rollback();
+                $error = $e->getMessage();
             }
-
-            // 2. Insert ke orders
-            $kode_pesanan = generate_kode_pesanan();
-            $ins_ord = $conn->prepare("
-                INSERT INTO orders (buyer_id, kode_pesanan, total_amount, status, catatan)
-                VALUES (?, ?, ?, 'menunggu_pembayaran', ?)
-            ");
-            $ins_ord->bind_param("isds", $buyer_id, $kode_pesanan, $total_amount, $catatan);
-            $ins_ord->execute();
-            $order_id = $conn->insert_id;
-
-            // 3. Insert ke order_items & potong stok
-            $ins_item = $conn->prepare("
-                INSERT INTO order_items (order_id, batch_id, nama_produk_snapshot, satuan_snapshot, quantity, harga_satuan, is_rescue)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ");
-            $dec_stok = $conn->prepare("UPDATE harvest_batches SET stok_tersedia = stok_tersedia - ? WHERE id = ?");
-
-            foreach ($cart_items as $it) {
-                $ins_item->bind_param("iissddi", $order_id, $it['batch_id'], $it['nama_komoditas'], $it['satuan'], $it['quantity'], $it['effective_price'], $it['is_rescue_applied']);
-                $ins_item->execute();
-
-                $dec_stok->bind_param("di", $it['quantity'], $it['batch_id']);
-                $dec_stok->execute();
-            }
-
-            // 4. Insert ke deliveries
-            $ins_del = $conn->prepare("
-                INSERT INTO deliveries (order_id, metode, pickup_point_id, alamat_tujuan, jadwal, status)
-                VALUES (?, ?, ?, ?, ?, 'menunggu')
-            ");
-            $ins_del->bind_param("isiss", $order_id, $metode, $pickup_point_id, $alamat_tujuan, $jadwal);
-            $ins_del->execute();
-
-            // 5. Insert ke payments
-            $ins_pay = $conn->prepare("
-                INSERT INTO payments (order_id, nominal, status_pembayaran)
-                VALUES (?, ?, 'menunggu')
-            ");
-            $ins_pay->bind_param("id", $order_id, $total_amount);
-            $ins_pay->execute();
-
-            // 6. Kosongkan cart pembeli
-            $del_cart = $conn->prepare("DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE buyer_id = ?)");
-            $del_cart->bind_param("i", $buyer_id);
-            $del_cart->execute();
-
-            $conn->commit();
-
-            $_SESSION['flash'] = "Pesanan berhasil dibuat dengan kode: $kode_pesanan. Silakan unggah bukti transfer pembayaran.";
-            $_SESSION['flash_type'] = "success";
-            header("Location: " . BASE_URL . "/pembeli/pembayaran.php?id=" . $order_id);
-            exit;
-        } catch (Exception $e) {
-            $conn->rollback();
-            $error = $e->getMessage();
         }
     }
 }
@@ -200,6 +222,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <div class="card card-body">
                     <h3>Metode Pemenuhan Pesanan</h3>
                     <form method="POST">
+                        <?= csrf_field() ?>
                         <div class="form-group mt-2">
                             <label class="form-label">Pilih Metode:</label>
                             <div class="d-flex gap-2">
@@ -233,7 +256,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                         <div class="form-group">
                             <label class="form-label">Estimasi Jadwal Pengambilan/Pengantaran (Opsional)</label>
-                            <input type="date" name="jadwal" class="form-control">
+                            <input type="date" name="jadwal" class="form-control" min="<?= date('Y-m-d') ?>" value="<?= sanitize($_POST['jadwal'] ?? '') ?>">
                         </div>
 
                         <div class="form-group">

@@ -10,26 +10,36 @@ cek_role('admin');
 $pesan = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
 $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type']);
 
-// Toggle status atau hapus
-if (isset($_GET['action'], $_GET['id'])) {
-    $id = (int)$_GET['id'];
-    if ($_GET['action'] === 'toggle') {
-        $curr = $conn->query("SELECT status_aktif FROM pickup_points WHERE id = $id")->fetch_assoc();
-        if ($curr) {
-            $new = $curr['status_aktif'] ? 0 : 1;
-            $conn->query("UPDATE pickup_points SET status_aktif = $new WHERE id = $id");
-            $_SESSION['flash'] = 'Status titik pengambilan berhasil diperbarui.';
+// Toggle status atau hapus (POST + CSRF + prepared statement)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
+    if (!verify_csrf()) {
+        $_SESSION['flash'] = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $_SESSION['flash_type'] = 'danger';
+    } else {
+        $id = (int)$_POST['id'];
+        if ($_POST['action'] === 'toggle' && $id > 0) {
+            $stmt_sel = $conn->prepare("SELECT status_aktif FROM pickup_points WHERE id = ?");
+            $stmt_sel->bind_param('i', $id);
+            $stmt_sel->execute();
+            $curr = $stmt_sel->get_result()->fetch_assoc();
+            if ($curr) {
+                $new = $curr['status_aktif'] ? 0 : 1;
+                $stmt_upd = $conn->prepare("UPDATE pickup_points SET status_aktif = ? WHERE id = ?");
+                $stmt_upd->bind_param('ii', $new, $id);
+                $stmt_upd->execute();
+                $_SESSION['flash'] = 'Status titik pengambilan berhasil diperbarui.';
+                $_SESSION['flash_type'] = 'success';
+            }
+        } elseif ($_POST['action'] === 'hapus' && $id > 0) {
+            $stmt_del = $conn->prepare("DELETE FROM pickup_points WHERE id = ?");
+            $stmt_del->bind_param('i', $id);
+            $stmt_del->execute();
+            $_SESSION['flash'] = 'Titik pengambilan berhasil dihapus.';
             $_SESSION['flash_type'] = 'success';
         }
-        header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
-        exit;
-    } elseif ($_GET['action'] === 'hapus') {
-        $conn->query("DELETE FROM pickup_points WHERE id = $id");
-        $_SESSION['flash'] = 'Titik pengambilan berhasil dihapus.';
-        $_SESSION['flash_type'] = 'success';
-        header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
-        exit;
     }
+    header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
+    exit;
 }
 
 $points = $conn->query("SELECT * FROM pickup_points ORDER BY created_at DESC");
@@ -50,7 +60,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         </ul>
     </aside>
     <main class="dashboard-main">
-        <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="dashboard-header d-flex justify-between align-center flex-wrap gap-2">
             <div>
                 <h1>📍 Titik Pengambilan (Pick-up Point)</h1>
                 <p class="text-muted">Kelola lokasi titik pengambilan pesanan bagi pembeli.</p>
@@ -61,7 +71,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         <?php if ($pesan): ?><?= alert($pesan, $pesan_tipe) ?><?php endif; ?>
 
         <div class="table-card">
-            <table>
+            <table class="admin-dashboard-table">
                 <thead>
                     <tr>
                         <th>Nama Titik</th>
@@ -86,10 +96,20 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <td>
                             <div class="d-flex gap-1">
                                 <a href="<?= BASE_URL ?>/admin/edit_titik.php?id=<?= $p['id'] ?>" class="btn btn-sm btn-info">Edit</a>
-                                <a href="?action=toggle&id=<?= $p['id'] ?>" class="btn btn-sm <?= $p['status_aktif'] ? 'btn-warning' : 'btn-success' ?>">
-                                    <?= $p['status_aktif'] ? 'Nonaktifkan' : 'Aktifkan' ?>
-                                </a>
-                                <a href="?action=hapus&id=<?= $p['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Hapus titik pengambilan ini?')">Hapus</a>
+                                <form method="POST" style="display:inline;">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="toggle">
+                                    <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="btn btn-sm <?= $p['status_aktif'] ? 'btn-warning' : 'btn-success' ?>">
+                                        <?= $p['status_aktif'] ? 'Nonaktifkan' : 'Aktifkan' ?>
+                                    </button>
+                                </form>
+                                <form method="POST" style="display:inline;">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="hapus">
+                                    <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hapus titik pengambilan ini?')">Hapus</button>
+                                </form>
                             </div>
                         </td>
                     </tr>

@@ -49,7 +49,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         <?php if ($pesan): ?><?= alert($pesan, $pesan_tipe) ?><?php endif; ?>
 
         <div class="table-card">
-            <table>
+            <table class="admin-dashboard-table">
                 <thead>
                     <tr>
                         <th>Kode Pesanan</th>
@@ -84,7 +84,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="6" class="text-center text-muted">Anda belum memiliki riwayat pesanan.</td></tr>
+                    <tr class="empty-row"><td colspan="6" class="text-center text-muted admin-table-empty">Anda belum memiliki riwayat pesanan.</td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>

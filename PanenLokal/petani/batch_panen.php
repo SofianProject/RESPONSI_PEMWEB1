@@ -7,33 +7,39 @@ if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 $page_title = 'Kelola Batch Panen';
 cek_role('petani');
 
-$stmt = $conn->prepare("SELECT id FROM farmer_profiles WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$fp = $stmt->get_result()->fetch_assoc();
-$farmer_id = $fp['id'] ?? 0;
+$fp = get_farmer_profile($conn, $_SESSION['user_id']);
+$farmer_id = $fp['id'];
+$is_verified = ($fp['status_verifikasi'] === 'terverifikasi');
 
 $pesan = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
 $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type']);
 
-// Toggle status batch (misal ditutup/dibuka)
-if (isset($_GET['action'], $_GET['id']) && $_GET['action'] === 'toggle') {
-    $bid = (int)$_GET['id'];
-    $cur = $conn->prepare("
-        SELECT hb.status_batch FROM harvest_batches hb
-        JOIN commodities c ON c.id = hb.commodity_id
-        WHERE hb.id = ? AND c.farmer_id = ?
-    ");
-    $cur->bind_param("ii", $bid, $farmer_id);
-    $cur->execute();
-    $bdata = $cur->get_result()->fetch_assoc();
-    if ($bdata) {
-        $new_st = $bdata['status_batch'] === 'dibuka' ? 'ditutup' : 'dibuka';
-        $up = $conn->prepare("UPDATE harvest_batches SET status_batch = ? WHERE id = ?");
-        $up->bind_param("si", $new_st, $bid);
-        $up->execute();
-        $_SESSION['flash'] = 'Status batch panen berhasil diubah.';
-        $_SESSION['flash_type'] = 'success';
+// Toggle status batch (POST + CSRF + cek verifikasi)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle') {
+    if (!verify_csrf()) {
+        $_SESSION['flash'] = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $_SESSION['flash_type'] = 'danger';
+    } elseif (!$is_verified) {
+        $_SESSION['flash'] = 'Akun usaha tani Anda belum terverifikasi admin sehingga tidak dapat mengubah status batch panen.';
+        $_SESSION['flash_type'] = 'danger';
+    } else {
+        $bid = (int)($_POST['id'] ?? 0);
+        $cur = $conn->prepare("
+            SELECT hb.status_batch FROM harvest_batches hb
+            JOIN commodities c ON c.id = hb.commodity_id
+            WHERE hb.id = ? AND c.farmer_id = ?
+        ");
+        $cur->bind_param("ii", $bid, $farmer_id);
+        $cur->execute();
+        $bdata = $cur->get_result()->fetch_assoc();
+        if ($bdata) {
+            $new_st = $bdata['status_batch'] === 'dibuka' ? 'ditutup' : 'dibuka';
+            $up = $conn->prepare("UPDATE harvest_batches SET status_batch = ? WHERE id = ?");
+            $up->bind_param("si", $new_st, $bid);
+            $up->execute();
+            $_SESSION['flash'] = 'Status batch panen berhasil diubah.';
+            $_SESSION['flash_type'] = 'success';
+        }
     }
     header('Location: ' . BASE_URL . '/petani/batch_panen.php');
     exit;
@@ -70,7 +76,7 @@ require_once __DIR__ . '/../includes/navbar.php';
     </ul>
   </aside>
   <main class="dashboard-main">
-    <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="dashboard-header d-flex justify-between align-center flex-wrap gap-2">
       <div>
         <h1>📦 Kelola Batch Panen (Pre-Order)</h1>
         <p class="text-muted">Buat jadwal panen, kuota pre-order, dan harga komoditas.</p>
@@ -78,10 +84,14 @@ require_once __DIR__ . '/../includes/navbar.php';
       <a href="<?= BASE_URL ?>/petani/tambah_batch.php" class="btn btn-primary">+ Buat Batch Panen</a>
     </div>
 
+    <?php if (!$is_verified): ?>
+      <div class="alert alert-warning">⏳ Akun usaha tani Anda berstatus <strong><?= sanitize($fp['status_verifikasi']) ?></strong>. Penambahan atau pembukaan batch panen aktif setelah diverifikasi admin.</div>
+    <?php endif; ?>
+
     <?php if ($pesan): ?><?= alert($pesan, $pesan_tipe) ?><?php endif; ?>
 
     <div class="table-card">
-      <table>
+      <table class="petani-table">
         <thead>
           <tr>
             <th>Komoditas</th>
@@ -119,9 +129,14 @@ require_once __DIR__ . '/../includes/navbar.php';
             <td>
               <div class="d-flex gap-1">
                 <a href="<?= BASE_URL ?>/petani/edit_batch.php?id=<?= $b['id'] ?>" class="btn btn-sm btn-info">Edit</a>
-                <a href="?action=toggle&id=<?= $b['id'] ?>" class="btn btn-sm <?= $b['status_batch'] === 'dibuka' ? 'btn-warning' : 'btn-success' ?>">
-                  <?= $b['status_batch'] === 'dibuka' ? 'Tutup' : 'Buka' ?>
-                </a>
+                <form method="POST" style="display:inline;">
+                  <?= csrf_field() ?>
+                  <input type="hidden" name="action" value="toggle">
+                  <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                  <button type="submit" class="btn btn-sm <?= $b['status_batch'] === 'dibuka' ? 'btn-warning' : 'btn-success' ?>" <?= !$is_verified ? 'disabled' : '' ?>>
+                    <?= $b['status_batch'] === 'dibuka' ? 'Tutup' : 'Buka' ?>
+                  </button>
+                </form>
               </div>
             </td>
           </tr>

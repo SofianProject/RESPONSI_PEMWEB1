@@ -39,6 +39,30 @@ function cek_role($role_diizinkan) {
     }
 }
 
+// Validasi URL redirect internal agar aman dari open redirect
+function sanitize_redirect_url($url) {
+    $url = trim((string)$url);
+    if ($url === '' || preg_match('/[\r\n\0]/', $url)) {
+        return '';
+    }
+    if (strpos($url, '//') === 0 || preg_match('#^[a-zA-Z][a-zA-Z0-9+.-]*:#', $url)) {
+        return '';
+    }
+    $parsed = parse_url($url);
+    if ($parsed === false || isset($parsed['scheme']) || isset($parsed['host'])) {
+        return '';
+    }
+    $path = $parsed['path'] ?? '';
+    $prefix = defined('BASE_URL') ? BASE_URL . '/' : '/';
+    if (strpos($path, $prefix) !== 0) {
+        return '';
+    }
+    if (preg_match('#/(login|logout)\.php$#', $path)) {
+        return '';
+    }
+    return $url;
+}
+
 // Redirect sesuai role setelah login
 function redirect_by_role($role) {
     switch ($role) {

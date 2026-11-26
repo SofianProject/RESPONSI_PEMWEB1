@@ -31,14 +31,19 @@ if (!$user_data) {
 // Verifikasi petani jika form dikirim
 $pesan = $pesan_tipe = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verifikasi_petani'])) {
-    $status_ver = $_POST['verifikasi_petani'];
-    if (in_array($status_ver, ['terverifikasi', 'ditolak', 'menunggu'])) {
-        $up = $conn->prepare("UPDATE farmer_profiles SET status_verifikasi = ? WHERE user_id = ?");
-        $up->bind_param('si', $status_ver, $id);
-        $up->execute();
-        $user_data['status_verifikasi'] = $status_ver;
-        $pesan = 'Status verifikasi petani berhasil diubah.';
-        $pesan_tipe = 'success';
+    if (!verify_csrf()) {
+        $pesan = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $pesan_tipe = 'danger';
+    } else {
+        $status_ver = $_POST['verifikasi_petani'];
+        if (in_array($status_ver, ['terverifikasi', 'ditolak', 'menunggu'])) {
+            $up = $conn->prepare("UPDATE farmer_profiles SET status_verifikasi = ? WHERE user_id = ?");
+            $up->bind_param('si', $status_ver, $id);
+            $up->execute();
+            $user_data['status_verifikasi'] = $status_ver;
+            $pesan = 'Status verifikasi petani berhasil diubah.';
+            $pesan_tipe = 'success';
+        }
     }
 }
 
@@ -93,6 +98,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 </table>
 
                 <form method="POST" class="mt-3">
+                    <?= csrf_field() ?>
                     <label class="form-label">Tindakan Verifikasi Petani:</label>
                     <div class="d-flex gap-1">
                         <button type="submit" name="verifikasi_petani" value="terverifikasi" class="btn btn-sm btn-success">Verifikasi</button>

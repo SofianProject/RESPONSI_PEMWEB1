@@ -7,42 +7,48 @@ if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 $page_title = 'Kelola Food Rescue';
 cek_role('petani');
 
-$stmt = $conn->prepare("SELECT id FROM farmer_profiles WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$fp = $stmt->get_result()->fetch_assoc();
-$farmer_id = $fp['id'] ?? 0;
+$fp = get_farmer_profile($conn, $_SESSION['user_id']);
+$farmer_id = $fp['id'];
+$is_verified = ($fp['status_verifikasi'] === 'terverifikasi');
 
 $pesan = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
 $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type']);
 
-// Form update cepat rescue
+// Form update cepat rescue (POST + CSRF + cek verifikasi)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['batch_id'])) {
-    $bid          = (int)$_POST['batch_id'];
-    $rescue_aktif = isset($_POST['rescue_aktif']) ? 1 : 0;
-    $harga_rescue = !empty($_POST['harga_rescue']) ? (float)$_POST['harga_rescue'] : null;
-    $batas_rescue = !empty($_POST['batas_rescue']) ? trim($_POST['batas_rescue']) : null;
+    if (!verify_csrf()) {
+        $pesan = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $pesan_tipe = 'danger';
+    } elseif (!$is_verified) {
+        $pesan = 'Akun usaha tani Anda belum terverifikasi admin sehingga belum dapat mengelola Food Rescue.';
+        $pesan_tipe = 'danger';
+    } else {
+        $bid          = (int)$_POST['batch_id'];
+        $rescue_aktif = isset($_POST['rescue_aktif']) ? 1 : 0;
+        $harga_rescue = !empty($_POST['harga_rescue']) ? (float)$_POST['harga_rescue'] : null;
+        $batas_rescue = !empty($_POST['batas_rescue']) ? trim($_POST['batas_rescue']) : null;
 
-    // Cek kepemilikan
-    $chk = $conn->prepare("
-        SELECT hb.harga_normal FROM harvest_batches hb
-        JOIN commodities c ON c.id = hb.commodity_id
-        WHERE hb.id = ? AND c.farmer_id = ?
-    ");
-    $chk->bind_param("ii", $bid, $farmer_id);
-    $chk->execute();
-    $binfo = $chk->get_result()->fetch_assoc();
+        // Cek kepemilikan
+        $chk = $conn->prepare("
+            SELECT hb.harga_normal FROM harvest_batches hb
+            JOIN commodities c ON c.id = hb.commodity_id
+            WHERE hb.id = ? AND c.farmer_id = ?
+        ");
+        $chk->bind_param("ii", $bid, $farmer_id);
+        $chk->execute();
+        $binfo = $chk->get_result()->fetch_assoc();
 
-    if ($binfo) {
-        if ($rescue_aktif && (!$harga_rescue || $harga_rescue >= $binfo['harga_normal'])) {
-            $pesan = 'Harga rescue harus lebih rendah dari harga normal (' . format_rupiah($binfo['harga_normal']) . ').';
-            $pesan_tipe = 'danger';
-        } else {
-            $up = $conn->prepare("UPDATE harvest_batches SET rescue_aktif = ?, harga_rescue = ?, batas_rescue = ? WHERE id = ?");
-            $up->bind_param("idsi", $rescue_aktif, $harga_rescue, $batas_rescue, $bid);
-            $up->execute();
-            $pesan = 'Pengaturan Food Rescue berhasil diperbarui!';
-            $pesan_tipe = 'success';
+        if ($binfo) {
+            if ($rescue_aktif && (!$harga_rescue || $harga_rescue >= $binfo['harga_normal'])) {
+                $pesan = 'Harga rescue harus lebih rendah dari harga normal (' . format_rupiah($binfo['harga_normal']) . ').';
+                $pesan_tipe = 'danger';
+            } else {
+                $up = $conn->prepare("UPDATE harvest_batches SET rescue_aktif = ?, harga_rescue = ?, batas_rescue = ? WHERE id = ?");
+                $up->bind_param("idsi", $rescue_aktif, $harga_rescue, $batas_rescue, $bid);
+                $up->execute();
+                $pesan = 'Pengaturan Food Rescue berhasil diperbarui!';
+                $pesan_tipe = 'success';
+            }
         }
     }
 }
@@ -82,10 +88,14 @@ require_once __DIR__ . '/../includes/navbar.php';
       <p class="text-muted">Tandai panen berlebih atau mendekati masa kesegaran untuk diselamatkan dengan harga promo hemat.</p>
     </div>
 
+    <?php if (!$is_verified): ?>
+      <div class="alert alert-warning">⏳ Akun usaha tani Anda berstatus <strong><?= sanitize($fp['status_verifikasi']) ?></strong>. Pengelolaan Food Rescue hanya tersedia setelah verifikasi admin.</div>
+    <?php endif; ?>
+
     <?php if ($pesan): ?><?= alert($pesan, $pesan_tipe) ?><?php endif; ?>
 
     <div class="table-card">
-      <table>
+      <table class="petani-table">
         <thead>
           <tr>
             <th>Komoditas</th>
@@ -102,6 +112,7 @@ require_once __DIR__ . '/../includes/navbar.php';
           <?php while ($b = $batches->fetch_assoc()): ?>
           <tr>
             <form method="POST">
+              <?= csrf_field() ?>
               <input type="hidden" name="batch_id" value="<?= $b['id'] ?>">
               <td><strong><?= sanitize($b['komoditas']) ?></strong></td>
               <td><?= (float)$b['stok_tersedia'] ?> <?= sanitize($b['satuan']) ?></td>
@@ -121,7 +132,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <input type="datetime-local" name="batas_rescue" class="form-control" style="width:180px; font-size:.85rem; padding:.3rem;" value="<?= $b['batas_rescue'] ? date('Y-m-d\TH:i', strtotime($b['batas_rescue'])) : '' ?>">
               </td>
               <td>
-                <button type="submit" class="btn btn-sm btn-orange">Update</button>
+                <button type="submit" class="btn btn-sm btn-orange" <?= !$is_verified ? 'disabled' : '' ?>>Update</button>
               </td>
             </form>
           </tr>

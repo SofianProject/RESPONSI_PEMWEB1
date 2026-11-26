@@ -10,6 +10,9 @@ if (is_logged_in()) { redirect_by_role($_SESSION['role']); }
 
 $error = $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
+    } else {
     $nama_lengkap  = trim($_POST['nama_lengkap'] ?? '');
     $username      = trim($_POST['username'] ?? '');
     $password      = $_POST['password'] ?? '';
@@ -62,9 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $success = 'Akun berhasil dibuat! Silakan login.';
             } catch (Exception $e) {
                 $conn->rollback();
-                $error = 'Terjadi kesalahan: ' . $e->getMessage();
+                error_log('Register error: ' . $e->getMessage());
+                $error = 'Terjadi kesalahan saat mendaftarkan akun. Silakan coba lagi.';
             }
         }
+    }
     }
 }
 
@@ -80,6 +85,7 @@ require_once __DIR__ . '/includes/navbar.php';
             <?php if ($success): ?><?= alert($success, 'success') ?><div class="text-center mt-2"><a href="<?= BASE_URL ?>/login.php" class="btn btn-primary">Login Sekarang</a></div><?php endif; ?>
             <?php if (!$success): ?>
             <form id="register-form" method="POST">
+                <?= csrf_field() ?>
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="nama_lengkap">Nama Lengkap *</label>

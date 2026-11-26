@@ -15,23 +15,28 @@ $farmer_id = $fp['id'] ?? 0;
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_lahan = trim($_POST['nama_lahan'] ?? '');
-    $lokasi     = trim($_POST['lokasi'] ?? '');
-    $luas_m2    = !empty($_POST['luas_m2']) ? (float)$_POST['luas_m2'] : null;
-    $keterangan = trim($_POST['keterangan'] ?? '');
-
-    if (!$nama_lahan || !$lokasi) {
-        $error = 'Nama lahan dan lokasi wajib diisi.';
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
     } else {
-        $ins = $conn->prepare("INSERT INTO lands (farmer_id, nama_lahan, lokasi, luas_m2, keterangan) VALUES (?, ?, ?, ?, ?)");
-        $ins->bind_param("issds", $farmer_id, $nama_lahan, $lokasi, $luas_m2, $keterangan);
-        if ($ins->execute()) {
-            $_SESSION['flash'] = 'Lahan berhasil ditambahkan!';
-            $_SESSION['flash_type'] = 'success';
-            header('Location: ' . BASE_URL . '/petani/lahan.php');
-            exit;
+        $nama_lahan = trim($_POST['nama_lahan'] ?? '');
+        $lokasi     = trim($_POST['lokasi'] ?? '');
+        $luas_m2    = !empty($_POST['luas_m2']) ? (float)$_POST['luas_m2'] : null;
+        $keterangan = trim($_POST['keterangan'] ?? '');
+
+        if (!$nama_lahan || !$lokasi) {
+            $error = 'Nama lahan dan lokasi wajib diisi.';
         } else {
-            $error = 'Gagal menyimpan lahan: ' . $conn->error;
+            $ins = $conn->prepare("INSERT INTO lands (farmer_id, nama_lahan, lokasi, luas_m2, keterangan) VALUES (?, ?, ?, ?, ?)");
+            $ins->bind_param("issds", $farmer_id, $nama_lahan, $lokasi, $luas_m2, $keterangan);
+            if ($ins->execute()) {
+                $_SESSION['flash'] = 'Lahan berhasil ditambahkan!';
+                $_SESSION['flash_type'] = 'success';
+                header('Location: ' . BASE_URL . '/petani/lahan.php');
+                exit;
+            } else {
+                error_log('Tambah lahan error: ' . $conn->error);
+                $error = 'Gagal menyimpan data lahan. Silakan coba lagi.';
+            }
         }
     }
 }
@@ -63,6 +68,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
     <div class="card card-body" style="max-width: 600px;">
       <form method="POST">
+        <?= csrf_field() ?>
         <div class="form-group">
           <label class="form-label">Nama Lahan *</label>
           <input type="text" name="nama_lahan" class="form-control" required placeholder="Contoh: Kebun Sayur Lereng A" value="<?= sanitize($_POST['nama_lahan'] ?? '') ?>">
