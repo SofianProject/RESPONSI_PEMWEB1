@@ -24,23 +24,28 @@ if (!$titik) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_titik = trim($_POST['nama_titik'] ?? '');
-    $alamat     = trim($_POST['alamat'] ?? '');
-    $deskripsi  = trim($_POST['deskripsi'] ?? '');
-    $status     = isset($_POST['status_aktif']) ? 1 : 0;
-
-    if (!$nama_titik || !$alamat) {
-        $error = 'Nama titik dan alamat wajib diisi.';
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
     } else {
-        $upd = $conn->prepare("UPDATE pickup_points SET nama_titik = ?, alamat = ?, deskripsi = ?, status_aktif = ? WHERE id = ?");
-        $upd->bind_param('sssii', $nama_titik, $alamat, $deskripsi, $status, $id);
-        if ($upd->execute()) {
-            $_SESSION['flash'] = 'Titik pengambilan berhasil diperbarui!';
-            $_SESSION['flash_type'] = 'success';
-            header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
-            exit;
+        $nama_titik = trim($_POST['nama_titik'] ?? '');
+        $alamat     = trim($_POST['alamat'] ?? '');
+        $deskripsi  = trim($_POST['deskripsi'] ?? '');
+        $status     = isset($_POST['status_aktif']) ? 1 : 0;
+
+        if (!$nama_titik || !$alamat) {
+            $error = 'Nama titik dan alamat wajib diisi.';
         } else {
-            $error = 'Gagal memperbarui data: ' . $conn->error;
+            $upd = $conn->prepare("UPDATE pickup_points SET nama_titik = ?, alamat = ?, deskripsi = ?, status_aktif = ? WHERE id = ?");
+            $upd->bind_param('sssii', $nama_titik, $alamat, $deskripsi, $status, $id);
+            if ($upd->execute()) {
+                $_SESSION['flash'] = 'Titik pengambilan berhasil diperbarui!';
+                $_SESSION['flash_type'] = 'success';
+                header('Location: ' . BASE_URL . '/admin/titik_pengambilan.php');
+                exit;
+            } else {
+                error_log('Edit titik error: ' . $conn->error);
+                $error = 'Gagal memperbarui data titik pengambilan. Silakan coba lagi.';
+            }
         }
     }
 }
@@ -70,6 +75,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
         <div class="card card-body" style="max-width: 600px;">
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label class="form-label">Nama Titik *</label>
                     <input type="text" name="nama_titik" class="form-control" required value="<?= sanitize($titik['nama_titik']) ?>">

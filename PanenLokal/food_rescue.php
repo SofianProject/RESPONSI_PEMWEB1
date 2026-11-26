@@ -56,8 +56,7 @@ require_once __DIR__ . '/includes/navbar.php';
 
                     <?php if ($p['batas_rescue']): ?>
                         <div class="mt-1" style="font-size:.82rem;color:var(--orange);">⏱ Berakhir:</div>
-                        <div id="cd-<?= $p['id'] ?>"></div>
-                        <script>startCountdown('cd-<?= $p['id'] ?>','<?= $p['batas_rescue'] ?>')</script>
+                        <div id="cd-<?= $p['id'] ?>" data-countdown="<?= sanitize($p['batas_rescue']) ?>"></div>
                     <?php endif; ?>
 
                     <div class="card-meta mt-2">

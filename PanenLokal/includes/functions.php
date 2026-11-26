@@ -57,4 +57,71 @@ function redirect($url) {
     header('Location: ' . $url);
     exit;
 }
+
+function validate_uploaded_file($file, $allowed_map, $max_size, $format_label) {
+    if (!isset($file) || !is_array($file)) {
+        return 'Berkas tidak ditemukan.';
+    }
+    if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE) {
+        return 'Ukuran file maksimal 2MB.';
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        return 'Gagal mengunggah berkas (kode error: ' . (int)$file['error'] . ').';
+    }
+    if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return 'Berkas unggahan tidak valid.';
+    }
+    if ($file['size'] <= 0 || $file['size'] > $max_size) {
+        return 'Ukuran file maksimal 2MB dan tidak boleh kosong.';
+    }
+
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!array_key_exists($ext, $allowed_map)) {
+        return 'Format file harus ' . $format_label . '.';
+    }
+
+    $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : false;
+    if (!$finfo) {
+        return 'Server tidak dapat memverifikasi tipe file.';
+    }
+    $mime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    if (!$mime || !in_array($mime, $allowed_map[$ext], true)) {
+        return 'Isi file tidak cocok dengan ekstensi .' . $ext . '. Pastikan file benar-benar berformat ' . $format_label . '.';
+    }
+
+    return null;
+}
+
+function csrf_token() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_field() {
+    return '<input type="hidden" name="csrf_token" value="' . sanitize(csrf_token()) . '">';
+}
+
+function verify_csrf() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $token = $_POST['csrf_token'] ?? '';
+    return !empty($_SESSION['csrf_token']) && is_string($token) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function get_farmer_profile($conn, $user_id) {
+    $stmt = $conn->prepare("SELECT id, nama_usaha, status_verifikasi FROM farmer_profiles WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $fp = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $fp ?: ['id' => 0, 'nama_usaha' => '', 'status_verifikasi' => 'menunggu'];
+}
 ?>

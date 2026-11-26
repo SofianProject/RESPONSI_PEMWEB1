@@ -54,27 +54,33 @@ require_once __DIR__ . '/../includes/navbar.php';
         </div>
 
         <?php if (!empty($_SESSION['flash'])): ?>
-            <?= alert($_SESSION['flash']['msg'], $_SESSION['flash']['type']) ?>
-            <?php unset($_SESSION['flash']); ?>
+            <?php
+            $flash_msg  = is_array($_SESSION['flash']) ? ($_SESSION['flash']['msg'] ?? '') : $_SESSION['flash'];
+            $flash_type = is_array($_SESSION['flash']) ? ($_SESSION['flash']['type'] ?? 'success') : ($_SESSION['flash_type'] ?? 'success');
+            ?>
+            <?php if ($flash_msg !== ''): ?>
+                <?= alert($flash_msg, $flash_type) ?>
+            <?php endif; ?>
+            <?php unset($_SESSION['flash'], $_SESSION['flash_type']); ?>
         <?php endif; ?>
 
         <!-- Stat Cards -->
         <div class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card stat-accent-green">
                 <div class="stat-icon">📋</div>
                 <div class="stat-info">
                     <div class="stat-value"><?= (int)$stats['total_pesanan'] ?></div>
                     <div class="stat-label">Total Pesanan</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card stat-accent-orange">
                 <div class="stat-icon">🔄</div>
                 <div class="stat-info">
                     <div class="stat-value"><?= (int)$stats['pesanan_aktif'] ?></div>
                     <div class="stat-label">Pesanan Aktif</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card stat-accent-green-dark">
                 <div class="stat-icon">✅</div>
                 <div class="stat-info">
                     <div class="stat-value"><?= (int)$stats['pesanan_selesai'] ?></div>
@@ -92,7 +98,9 @@ require_once __DIR__ . '/../includes/navbar.php';
             <?php if (empty($pesanan_terbaru)): ?>
                 <div class="empty-state">
                     <div class="empty-icon">📭</div>
-                    <p>Belum ada pesanan. <a href="<?= BASE_URL ?>/katalog.php">Belanja sekarang!</a></p>
+                    <h4 class="empty-title">Belum Ada Pesanan</h4>
+                    <p class="text-muted">Anda belum memiliki riwayat pesanan. Mulai jelajahi hasil tani segar langsung dari petani lokal.</p>
+                    <a href="<?= BASE_URL ?>/katalog.php" class="btn btn-primary mt-1">Jelajahi Katalog Sekarang</a>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
@@ -116,7 +124,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 <td><?= format_rupiah($p['total_amount']) ?></td>
                                 <td><span class="badge <?= sanitize($sl['class']) ?>"><?= sanitize($sl['label']) ?></span></td>
                                 <td>
-                                    <a href="<?= BASE_URL ?>/pembeli/detail_pesanan.php?id=<?= (int)$p['id'] ?? '' ?>" class="btn btn-sm btn-primary">Detail</a>
+                                    <a href="<?= BASE_URL ?>/pembeli/detail_pesanan.php?id=<?= (int)($p['id'] ?? 0) ?>" class="btn btn-sm btn-primary">Detail</a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

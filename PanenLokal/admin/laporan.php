@@ -100,7 +100,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <div style="padding:1rem 1.2rem; border-bottom:1px solid var(--gray-200);">
                     <h3 style="margin:0;">🥦 Komoditas Terlaris</h3>
                 </div>
-                <table>
+                <table class="admin-dashboard-table">
                     <thead>
                         <tr>
                             <th>Komoditas</th>
@@ -128,7 +128,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <div style="padding:1rem 1.2rem; border-bottom:1px solid var(--gray-200);">
                     <h3 style="margin:0;">🧑‍🌾 Petani Paling Produktif</h3>
                 </div>
-                <table>
+                <table class="admin-dashboard-table">
                     <thead>
                         <tr>
                             <th>Usaha Tani</th>

@@ -32,16 +32,22 @@ if (!$order) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_FILES['bukti_pembayaran']) && $_FILES['bukti_pembayaran']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['bukti_pembayaran']['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'pdf'];
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
+    } elseif (isset($_FILES['bukti_pembayaran']) && $_FILES['bukti_pembayaran']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $allowed_map = [
+            'jpg'  => ['image/jpeg', 'image/pjpeg'],
+            'jpeg' => ['image/jpeg', 'image/pjpeg'],
+            'png'  => ['image/png'],
+            'pdf'  => ['application/pdf'],
+        ];
         $max_size = 2 * 1024 * 1024; // 2MB
+        $upload_err = validate_uploaded_file($_FILES['bukti_pembayaran'], $allowed_map, $max_size, 'JPG, PNG, atau PDF');
 
-        if (!in_array($ext, $allowed)) {
-            $error = 'Format file bukti transfer harus JPG, PNG, atau PDF.';
-        } elseif ($_FILES['bukti_pembayaran']['size'] > $max_size) {
-            $error = 'Ukuran file bukti transfer maksimal 2MB.';
+        if ($upload_err !== null) {
+            $error = $upload_err;
         } else {
+            $ext = strtolower(pathinfo($_FILES['bukti_pembayaran']['name'], PATHINFO_EXTENSION));
             $target_dir = __DIR__ . '/../uploads/payments/';
             if (!is_dir($target_dir)) {
                 mkdir($target_dir, 0777, true);
@@ -131,13 +137,14 @@ require_once __DIR__ . '/../includes/navbar.php';
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" enctype="multipart/form-data">
+                <form id="payment-form" method="POST" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
                     <div class="form-group mt-2">
                         <label class="form-label">Pilih Berkas Bukti Transfer (JPG / PNG / PDF, Maks. 2MB)</label>
                         <div class="upload-area" id="upload-area">
                             <div style="font-size:2.5rem; margin-bottom:.5rem;">📄</div>
                             <div id="upload-info">Klik di sini untuk memilih berkas bukti transfer</div>
-                            <input type="file" id="bukti_pembayaran" name="bukti_pembayaran" accept=".jpg,.jpeg,.png,.pdf" required>
+                            <input type="file" id="bukti_pembayaran" name="bukti_pembayaran" accept=".jpg,.jpeg,.png,.pdf">
                         </div>
                     </div>
 
@@ -148,7 +155,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         </div>
                     <?php endif; ?>
 
-                    <button type="submit" class="btn btn-primary btn-block btn-lg" onclick="return confirm('Kirim bukti pembayaran ini?')">Kirim Bukti Pembayaran</button>
+                    <button type="submit" class="btn btn-primary btn-block btn-lg">Kirim Bukti Pembayaran</button>
                 </form>
             </div>
         </div>

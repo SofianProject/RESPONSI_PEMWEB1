@@ -23,7 +23,7 @@ require_once __DIR__ . '/includes/navbar.php';
             <div style="font-size:4rem;margin-bottom:1rem;">🌿</div>
             <h2 style="color:var(--green-dark);">PanenLokal</h2>
             <p style="font-size:1.1rem;color:var(--gray-700);">Platform Pre-Order Hasil Tani dan Penyelamatan Pangan (Food Loss Rescue)</p>
-            <div class="d-flex gap-2 justify-content:center;flex-wrap:wrap;" style="justify-content:center;margin-top:1rem;">
+            <div class="d-flex gap-2 justify-center flex-wrap mt-2">
                 <span class="badge badge-primary" style="font-size:.9rem;padding:.5rem 1rem;">SDG 2 — Zero Hunger</span>
                 <span class="badge badge-success" style="font-size:.9rem;padding:.5rem 1rem;">PHP Native + MySQL</span>
                 <span class="badge badge-secondary" style="font-size:.9rem;padding:.5rem 1rem;">Praktikum Pemweb 1</span>
@@ -80,10 +80,10 @@ require_once __DIR__ . '/includes/navbar.php';
             </table>
         </div>
 
-        <div class="card card-body mt-3" style="background:linear-gradient(135deg,var(--green-dark),var(--green-mid));color:#fff;text-align:center;">
+        <div class="card card-body mt-3 bg-green-gradient text-center">
             <h3 style="color:#fff;">Bergabunglah Bersama Kami</h3>
             <p style="opacity:.9;">Bersama kita wujudkan sistem pangan lokal yang lebih adil dan berkelanjutan.</p>
-            <div class="d-flex gap-2 flex-wrap" style="justify-content:center;margin-top:.5rem;">
+            <div class="d-flex gap-2 flex-wrap justify-center mt-1">
                 <a href="<?= BASE_URL ?>/register.php" class="btn" style="background:#fff;color:var(--green-dark);">Daftar Sekarang</a>
                 <a href="<?= BASE_URL ?>/katalog.php" class="btn btn-outline-primary">Lihat Katalog</a>
             </div>

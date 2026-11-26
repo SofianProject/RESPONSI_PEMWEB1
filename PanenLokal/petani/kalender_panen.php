@@ -50,7 +50,7 @@ require_once __DIR__ . '/../includes/navbar.php';
     </div>
 
     <div class="table-card">
-      <table>
+      <table class="petani-table">
         <thead>
           <tr>
             <th>Tanggal Estimasi</th>

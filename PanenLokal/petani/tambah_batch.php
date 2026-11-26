@@ -7,53 +7,77 @@ if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 $page_title = 'Tambah Batch Panen';
 cek_role('petani');
 
-$stmt = $conn->prepare("SELECT id FROM farmer_profiles WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$fp = $stmt->get_result()->fetch_assoc();
-$farmer_id = $fp['id'] ?? 0;
+$fp = get_farmer_profile($conn, $_SESSION['user_id']);
+$farmer_id = $fp['id'];
+$is_verified = ($fp['status_verifikasi'] === 'terverifikasi');
 
 // Daftar komoditas aktif milik petani
-$comms = $conn->query("SELECT id, nama, satuan FROM commodities WHERE farmer_id = $farmer_id AND status_komoditas = 'aktif'");
+$q_comms = $conn->prepare("SELECT id, nama, satuan FROM commodities WHERE farmer_id = ? AND status_komoditas = 'aktif'");
+$q_comms->bind_param("i", $farmer_id);
+$q_comms->execute();
+$comms = $q_comms->get_result();
+
 // Daftar lahan milik petani
-$lands = $conn->query("SELECT id, nama_lahan FROM lands WHERE farmer_id = $farmer_id");
+$q_lands = $conn->prepare("SELECT id, nama_lahan FROM lands WHERE farmer_id = ?");
+$q_lands->bind_param("i", $farmer_id);
+$q_lands->execute();
+$lands = $q_lands->get_result();
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $commodity_id  = (int)($_POST['commodity_id'] ?? 0);
-    $land_id       = !empty($_POST['land_id']) ? (int)$_POST['land_id'] : null;
-    $tgl_panen     = trim($_POST['tanggal_estimasi_panen'] ?? '');
-    $estimasi_jml  = (float)($_POST['estimasi_jumlah'] ?? 0);
-    $stok_tersedia = (float)($_POST['stok_tersedia'] ?? 0);
-    $harga_normal  = (float)($_POST['harga_normal'] ?? 0);
-    $rescue_aktif  = isset($_POST['rescue_aktif']) ? 1 : 0;
-    $harga_rescue  = !empty($_POST['harga_rescue']) ? (float)$_POST['harga_rescue'] : null;
-    $batas_rescue  = !empty($_POST['batas_rescue']) ? trim($_POST['batas_rescue']) : null;
-
-    // Verifikasi komoditas milik petani
-    $chk_c = $conn->query("SELECT id FROM commodities WHERE id = $commodity_id AND farmer_id = $farmer_id");
-    if ($chk_c->num_rows === 0) {
-        $error = 'Komoditas tidak valid.';
-    } elseif ($land_id && $conn->query("SELECT id FROM lands WHERE id = $land_id AND farmer_id = $farmer_id")->num_rows === 0) {
-        $error = 'Lahan tidak valid.';
-    } elseif (!$tgl_panen || $estimasi_jml <= 0 || $stok_tersedia < 0 || $harga_normal <= 0) {
-        $error = 'Tanggal panen, estimasi jumlah, dan harga normal harus valid (>0).';
-    } elseif ($rescue_aktif && (!$harga_rescue || $harga_rescue <= 0 || $harga_rescue >= $harga_normal)) {
-        $error = 'Harga rescue harus lebih besar dari 0 dan lebih murah dari harga normal.';
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
+    } elseif (!$is_verified) {
+        $error = 'Akun usaha tani Anda belum terverifikasi oleh admin, sehingga belum dapat membuat batch panen.';
     } else {
-        $ins = $conn->prepare("
-            INSERT INTO harvest_batches 
-            (commodity_id, land_id, tanggal_estimasi_panen, estimasi_jumlah, stok_tersedia, harga_normal, rescue_aktif, harga_rescue, batas_rescue, status_batch)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'dibuka')
-        ");
-        $ins->bind_param("iisdddidss", $commodity_id, $land_id, $tgl_panen, $estimasi_jml, $stok_tersedia, $harga_normal, $rescue_aktif, $harga_rescue, $batas_rescue);
-        if ($ins->execute()) {
-            $_SESSION['flash'] = 'Batch panen berhasil dibuat!';
-            $_SESSION['flash_type'] = 'success';
-            header('Location: ' . BASE_URL . '/petani/batch_panen.php');
-            exit;
+        $commodity_id  = (int)($_POST['commodity_id'] ?? 0);
+        $land_id       = !empty($_POST['land_id']) ? (int)$_POST['land_id'] : null;
+        $tgl_panen     = trim($_POST['tanggal_estimasi_panen'] ?? '');
+        $estimasi_jml  = (float)($_POST['estimasi_jumlah'] ?? 0);
+        $stok_tersedia = (float)($_POST['stok_tersedia'] ?? 0);
+        $harga_normal  = (float)($_POST['harga_normal'] ?? 0);
+        $rescue_aktif  = isset($_POST['rescue_aktif']) ? 1 : 0;
+        $harga_rescue  = !empty($_POST['harga_rescue']) ? (float)$_POST['harga_rescue'] : null;
+        $batas_rescue  = !empty($_POST['batas_rescue']) ? trim($_POST['batas_rescue']) : null;
+
+        // Verifikasi komoditas milik petani
+        $chk_c = $conn->prepare("SELECT id FROM commodities WHERE id = ? AND farmer_id = ?");
+        $chk_c->bind_param("ii", $commodity_id, $farmer_id);
+        $chk_c->execute();
+        $has_c = $chk_c->get_result()->num_rows > 0;
+
+        $valid_land = true;
+        if ($land_id) {
+            $chk_l = $conn->prepare("SELECT id FROM lands WHERE id = ? AND farmer_id = ?");
+            $chk_l->bind_param("ii", $land_id, $farmer_id);
+            $chk_l->execute();
+            $valid_land = $chk_l->get_result()->num_rows > 0;
+        }
+
+        if (!$has_c) {
+            $error = 'Komoditas tidak valid.';
+        } elseif (!$valid_land) {
+            $error = 'Lahan tidak valid.';
+        } elseif (!$tgl_panen || $estimasi_jml <= 0 || $stok_tersedia < 0 || $harga_normal <= 0) {
+            $error = 'Tanggal panen, estimasi jumlah, dan harga normal harus valid (>0).';
+        } elseif ($rescue_aktif && (!$harga_rescue || $harga_rescue <= 0 || $harga_rescue >= $harga_normal)) {
+            $error = 'Harga rescue harus lebih besar dari 0 dan lebih murah dari harga normal.';
         } else {
-            $error = 'Gagal menyimpan batch: ' . $conn->error;
+            $ins = $conn->prepare("
+                INSERT INTO harvest_batches
+                (commodity_id, land_id, tanggal_estimasi_panen, estimasi_jumlah, stok_tersedia, harga_normal, rescue_aktif, harga_rescue, batas_rescue, status_batch)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'dibuka')
+            ");
+            $ins->bind_param("iisdddids", $commodity_id, $land_id, $tgl_panen, $estimasi_jml, $stok_tersedia, $harga_normal, $rescue_aktif, $harga_rescue, $batas_rescue);
+            if ($ins->execute()) {
+                $_SESSION['flash'] = 'Batch panen berhasil dibuat!';
+                $_SESSION['flash_type'] = 'success';
+                header('Location: ' . BASE_URL . '/petani/batch_panen.php');
+                exit;
+            } else {
+                error_log('Tambah batch error: ' . $conn->error);
+                $error = 'Gagal menyimpan batch panen. Silakan coba lagi.';
+            }
         }
     }
 }
@@ -81,10 +105,15 @@ require_once __DIR__ . '/../includes/navbar.php';
       <h1>Buat Batch Panen (Pre-Order)</h1>
     </div>
 
+    <?php if (!$is_verified): ?>
+      <div class="alert alert-warning">⏳ Akun usaha tani Anda berstatus <strong><?= sanitize($fp['status_verifikasi']) ?></strong>. Pembuatan batch panen baru hanya tersedia setelah verifikasi admin.</div>
+    <?php endif; ?>
+
     <?php if ($error): ?><?= alert($error, 'danger') ?><?php endif; ?>
 
     <div class="card card-body" style="max-width: 650px;">
       <form id="batch-form" method="POST">
+        <?= csrf_field() ?>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Pilih Komoditas *</label>

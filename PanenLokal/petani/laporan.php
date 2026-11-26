@@ -121,7 +121,7 @@ require_once __DIR__ . '/../includes/navbar.php';
       <div style="padding:1rem 1.2rem; border-bottom:1px solid var(--gray-200);">
         <h3 style="margin:0;">🥦 Komoditas Paling Laris Terjual</h3>
       </div>
-      <table>
+      <table class="petani-table">
         <thead>
           <tr>
             <th>Nama Komoditas</th>

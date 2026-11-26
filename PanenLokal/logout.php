@@ -1,7 +1,10 @@
 <?php
-session_start();
+require_once __DIR__ . '/config/koneksi.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 session_unset();
 session_destroy();
-header('Location: /RESPONSI_PEMWEB1/PanenLokal/login.php');
+header('Location: ' . BASE_URL . '/login.php');
 exit;
 ?>

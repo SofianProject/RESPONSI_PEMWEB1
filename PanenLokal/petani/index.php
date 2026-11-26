@@ -6,12 +6,9 @@ require_once __DIR__ . '/../includes/auth.php';
 cek_role('petani');
 
 // Ambil farmer_profile
-$stmt = $conn->prepare("SELECT id FROM farmer_profiles WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$fp = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-$farmer_id = $fp['id'] ?? 0;
+$fp = get_farmer_profile($conn, $_SESSION['user_id']);
+$farmer_id = $fp['id'];
+$status_verifikasi = $fp['status_verifikasi'];
 
 // Stat: total komoditas aktif
 $stmt = $conn->prepare("SELECT COUNT(*) as total FROM commodities WHERE farmer_id = ? AND status_komoditas = 'aktif'");
@@ -106,10 +103,18 @@ require_once __DIR__ . '/../includes/navbar.php';
     </ul>
   </aside>
   <main class="dashboard-main">
-    <h1 class="page-title">🌾 Dashboard Petani</h1>
-    <p class="page-subtitle">Selamat datang, <?= sanitize($_SESSION['nama'] ?? 'Petani') ?>!</p>
+    <div class="dashboard-header">
+      <h1 class="page-title">🌾 Dashboard Petani</h1>
+      <p class="page-subtitle">Selamat datang, <?= sanitize($_SESSION['nama'] ?? 'Petani') ?>!</p>
+    </div>
 
-    <div class="stat-cards">
+    <?php if ($status_verifikasi === 'menunggu'): ?>
+      <div class="alert alert-warning">⏳ Akun usaha tani Anda sedang <strong>menunggu verifikasi admin</strong>. Anda dapat melihat dashboard dan mengelola lahan, namun publikasi komoditas, batch panen, dan Food Rescue baru aktif setelah terverifikasi.</div>
+    <?php elseif ($status_verifikasi === 'ditolak'): ?>
+      <div class="alert alert-danger">❌ Verifikasi usaha tani Anda <strong>ditolak</strong> oleh admin. Fitur produksi komoditas dan batch panen dinonaktifkan sementara. Hubungi admin untuk informasi lebih lanjut.</div>
+    <?php endif; ?>
+
+    <div class="stats-grid stat-cards">
       <div class="stat-card">
         <div class="stat-icon">🥦</div>
         <div class="stat-info">
@@ -134,14 +139,14 @@ require_once __DIR__ . '/../includes/navbar.php';
       <div class="stat-card">
         <div class="stat-icon">💰</div>
         <div class="stat-info">
-          <div class="stat-value"><?= format_rupiah($total_pendapatan) ?></div>
+          <div class="stat-value" style="font-size:1.3rem;"><?= format_rupiah($total_pendapatan) ?></div>
           <div class="stat-label">Total Pendapatan</div>
         </div>
       </div>
     </div>
 
     <div class="dashboard-tables">
-      <section class="table-section">
+      <section class="table-card table-section">
         <div class="section-header">
           <h2>📋 5 Pesanan Terbaru</h2>
           <a href="<?= BASE_URL ?>/petani/pesanan.php" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
@@ -178,13 +183,13 @@ require_once __DIR__ . '/../includes/navbar.php';
         </div>
       </section>
 
-      <section class="table-section">
+      <section class="table-card table-section">
         <div class="section-header">
           <h2>📦 5 Batch Panen Terbaru</h2>
           <a href="<?= BASE_URL ?>/petani/batch_panen.php" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
         </div>
         <div class="table-responsive">
-          <table class="data-table">
+          <table class="data-table batch-summary-table">
             <thead>
               <tr>
                 <th>Komoditas</th>
@@ -198,13 +203,23 @@ require_once __DIR__ . '/../includes/navbar.php';
               <?php if (empty($batch_terbaru)): ?>
               <tr><td colspan="5" class="text-center text-muted">Belum ada batch panen</td></tr>
               <?php else: ?>
-              <?php foreach ($batch_terbaru as $b): ?>
+              <?php
+              $batch_badge_map = [
+                  'dibuka'     => 'badge-batch-dibuka',
+                  'siap_panen' => 'badge-info',
+                  'habis'      => 'badge-warning',
+                  'ditutup'    => 'badge-secondary',
+                  'dibatalkan' => 'badge-danger',
+              ];
+              foreach ($batch_terbaru as $b):
+                  $b_cls = $batch_badge_map[$b['status_batch']] ?? 'badge-secondary';
+              ?>
               <tr>
-                <td><?= sanitize($b['komoditas']) ?></td>
+                <td><strong><?= sanitize($b['komoditas']) ?></strong></td>
                 <td><?= format_tanggal($b['tanggal_estimasi_panen']) ?></td>
-                <td><?= sanitize($b['stok_tersedia']) ?></td>
+                <td><?= (float)$b['stok_tersedia'] ?></td>
                 <td><?= format_rupiah($b['harga_normal']) ?></td>
-                <td><span class="badge badge-info"><?= sanitize(ucfirst(str_replace('_', ' ', $b['status_batch']))) ?></span></td>
+                <td><span class="badge <?= $b_cls ?>"><?= sanitize(ucfirst(str_replace('_', ' ', $b['status_batch']))) ?></span></td>
               </tr>
               <?php endforeach; ?>
               <?php endif; ?>

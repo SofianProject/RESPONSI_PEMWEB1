@@ -42,7 +42,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             <p class="text-muted">Selamat datang, <?= sanitize($_SESSION['nama']) ?>!</p>
         </div>
 
-        <div class="stats-grid">
+        <div class="stats-grid admin-stats-grid">
             <div class="stat-card">
                 <div class="stat-icon">👥</div>
                 <div class="stat-info"><div class="stat-value"><?= $total_users ?></div><div class="stat-label">Total Pengguna</div></div>
@@ -73,14 +73,14 @@ require_once __DIR__ . '/../includes/navbar.php';
         <div class="alert alert-warning">⚠️ Ada <strong><?= $menunggu_ver ?></strong> pembayaran menunggu verifikasi. <a href="<?= BASE_URL ?>/admin/verifikasi_pembayaran.php">Verifikasi sekarang →</a></div>
         <?php endif; ?>
 
-        <div class="grid grid-2">
+        <div class="grid grid-2 admin-tables-grid">
             <div>
                 <h3>Pembayaran Menunggu Verifikasi</h3>
                 <div class="table-card mt-2">
-                    <table>
+                    <table class="admin-dashboard-table">
                         <thead><tr><th>Kode Pesanan</th><th>Pembeli</th><th>Total</th><th>Aksi</th></tr></thead>
                         <tbody>
-                        <?php if ($bayar_menunggu->num_rows > 0): while ($b = $bayar_menunggu->fetch_assoc()): ?>
+                        <?php if ($bayar_menunggu && $bayar_menunggu->num_rows > 0): while ($b = $bayar_menunggu->fetch_assoc()): ?>
                             <tr>
                                 <td><?= sanitize($b['kode_pesanan']) ?></td>
                                 <td><?= sanitize($b['nama_lengkap']) ?></td>
@@ -88,7 +88,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 <td><a href="<?= BASE_URL ?>/admin/detail_pembayaran.php?id=<?= $b['id'] ?>" class="btn btn-sm btn-primary">Periksa</a></td>
                             </tr>
                         <?php endwhile; else: ?>
-                            <tr><td colspan="4" class="text-center text-muted">Tidak ada pembayaran menunggu</td></tr>
+                            <tr class="empty-row"><td colspan="4" class="text-center text-muted admin-table-empty">Tidak ada pembayaran menunggu</td></tr>
                         <?php endif; ?>
                         </tbody>
                     </table>
@@ -98,10 +98,10 @@ require_once __DIR__ . '/../includes/navbar.php';
             <div>
                 <h3>Pesanan Terbaru</h3>
                 <div class="table-card mt-2">
-                    <table>
+                    <table class="admin-dashboard-table">
                         <thead><tr><th>Kode</th><th>Pembeli</th><th>Total</th><th>Status</th></tr></thead>
                         <tbody>
-                        <?php while ($ps = $pesanan_terbaru->fetch_assoc()):
+                        <?php if ($pesanan_terbaru && $pesanan_terbaru->num_rows > 0): while ($ps = $pesanan_terbaru->fetch_assoc()):
                             $sl = get_status_label($ps['status']);
                         ?>
                             <tr>
@@ -110,7 +110,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 <td><?= format_rupiah($ps['total_amount']) ?></td>
                                 <td><span class="badge <?= $sl['class'] ?>"><?= $sl['label'] ?></span></td>
                             </tr>
-                        <?php endwhile; ?>
+                        <?php endwhile; else: ?>
+                            <tr class="empty-row"><td colspan="4" class="text-center text-muted admin-table-empty">Belum ada pesanan terbaru</td></tr>
+                        <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

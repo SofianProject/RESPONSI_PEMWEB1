@@ -39,6 +39,12 @@ $orders = $stmt->get_result();
 
 // Update status pesanan jika dipanggil oleh admin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id'], $_POST['new_status'])) {
+    if (!verify_csrf()) {
+        $_SESSION['flash'] = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $_SESSION['flash_type'] = 'danger';
+        header('Location: ' . BASE_URL . '/admin/pesanan.php' . ($status_filter ? '?status=' . urlencode($status_filter) : ''));
+        exit;
+    }
     $oid = (int)$_POST['order_id'];
     $nstatus = $_POST['new_status'];
     $allowed = ['menunggu_pembayaran','menunggu_verifikasi','dibayar','diproses','siap_diambil','dikirim','selesai','dibatalkan'];
@@ -85,20 +91,20 @@ require_once __DIR__ . '/../includes/navbar.php';
         <?php if ($pesan): ?><?= alert($pesan, $pesan_tipe) ?><?php endif; ?>
 
         <!-- Filter Tab -->
-        <div class="d-flex gap-1 flex-wrap mb-3">
-            <a href="<?= BASE_URL ?>/admin/pesanan.php" class="btn btn-sm <?= !$status_filter ? 'btn-primary' : 'btn-secondary' ?>">Semua</a>
-            <a href="?status=menunggu_pembayaran" class="btn btn-sm <?= $status_filter==='menunggu_pembayaran'?'btn-warning':'btn-secondary' ?>">Menunggu Pembayaran</a>
-            <a href="?status=menunggu_verifikasi" class="btn btn-sm <?= $status_filter==='menunggu_verifikasi'?'btn-info':'btn-secondary' ?>">Menunggu Verifikasi</a>
-            <a href="?status=dibayar" class="btn btn-sm <?= $status_filter==='dibayar'?'btn-success':'btn-secondary' ?>">Dibayar</a>
-            <a href="?status=diproses" class="btn btn-sm <?= $status_filter==='diproses'?'btn-primary':'btn-secondary' ?>">Diproses</a>
-            <a href="?status=siap_diambil" class="btn btn-sm <?= $status_filter==='siap_diambil'?'btn-primary':'btn-secondary' ?>">Siap Diambil</a>
-            <a href="?status=dikirim" class="btn btn-sm <?= $status_filter==='dikirim'?'btn-info':'btn-secondary' ?>">Dikirim</a>
-            <a href="?status=selesai" class="btn btn-sm <?= $status_filter==='selesai'?'btn-dark':'btn-secondary' ?>">Selesai</a>
-            <a href="?status=dibatalkan" class="btn btn-sm <?= $status_filter==='dibatalkan'?'btn-danger':'btn-secondary' ?>">Dibatalkan</a>
+        <div class="admin-filter-group mb-3">
+            <a href="<?= BASE_URL ?>/admin/pesanan.php" class="filter-pill <?= !$status_filter ? 'active' : '' ?>">Semua</a>
+            <a href="?status=menunggu_pembayaran" class="filter-pill <?= $status_filter==='menunggu_pembayaran'?'active':'' ?>">Menunggu Pembayaran</a>
+            <a href="?status=menunggu_verifikasi" class="filter-pill <?= $status_filter==='menunggu_verifikasi'?'active':'' ?>">Menunggu Verifikasi</a>
+            <a href="?status=dibayar" class="filter-pill <?= $status_filter==='dibayar'?'active':'' ?>">Dibayar</a>
+            <a href="?status=diproses" class="filter-pill <?= $status_filter==='diproses'?'active':'' ?>">Diproses</a>
+            <a href="?status=siap_diambil" class="filter-pill <?= $status_filter==='siap_diambil'?'active':'' ?>">Siap Diambil</a>
+            <a href="?status=dikirim" class="filter-pill <?= $status_filter==='dikirim'?'active':'' ?>">Dikirim</a>
+            <a href="?status=selesai" class="filter-pill <?= $status_filter==='selesai'?'active':'' ?>">Selesai</a>
+            <a href="?status=dibatalkan" class="filter-pill <?= $status_filter==='dibatalkan'?'active':'' ?>">Dibatalkan</a>
         </div>
 
         <div class="table-card">
-            <table>
+            <table class="admin-dashboard-table">
                 <thead>
                     <tr>
                         <th>Kode Pesanan</th>
@@ -128,6 +134,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         </td>
                         <td>
                             <form method="POST" style="display:inline-flex; gap:.3rem; align-items:center;">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="order_id" value="<?= $o['id'] ?>">
                                 <select name="new_status" class="form-control" style="padding:.2rem .4rem; font-size:.8rem; height:auto;">
                                     <?php

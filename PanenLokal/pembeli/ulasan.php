@@ -36,23 +36,28 @@ if (!$item || $item['status'] !== 'selesai' || $item['review_id']) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $rating   = (int)($_POST['rating'] ?? 5);
-    $komentar = trim($_POST['komentar'] ?? '');
-
-    if ($rating < 1 || $rating > 5) {
-        $error = 'Rating harus bernilai 1 sampai 5 bintang.';
-    } elseif (mb_strlen($komentar) > 500) {
-        $error = 'Komentar maksimal 500 karakter.';
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
     } else {
-        $ins = $conn->prepare("INSERT INTO reviews (order_item_id, buyer_id, rating, komentar) VALUES (?, ?, ?, ?)");
-        $ins->bind_param("iiis", $order_item_id, $buyer_id, $rating, $komentar);
-        if ($ins->execute()) {
-            $_SESSION['flash'] = 'Terima kasih! Ulasan dan rating Anda berhasil disimpan.';
-            $_SESSION['flash_type'] = 'success';
-            header('Location: ' . BASE_URL . '/pembeli/detail_pesanan.php?id=' . $item['order_id']);
-            exit;
+        $rating   = (int)($_POST['rating'] ?? 5);
+        $komentar = trim($_POST['komentar'] ?? '');
+
+        if ($rating < 1 || $rating > 5) {
+            $error = 'Rating harus bernilai 1 sampai 5 bintang.';
+        } elseif (mb_strlen($komentar) > 500) {
+            $error = 'Komentar maksimal 500 karakter.';
         } else {
-            $error = 'Gagal menyimpan ulasan: ' . $conn->error;
+            $ins = $conn->prepare("INSERT INTO reviews (order_item_id, buyer_id, rating, komentar) VALUES (?, ?, ?, ?)");
+            $ins->bind_param("iiis", $order_item_id, $buyer_id, $rating, $komentar);
+            if ($ins->execute()) {
+                $_SESSION['flash'] = 'Terima kasih! Ulasan dan rating Anda berhasil disimpan.';
+                $_SESSION['flash_type'] = 'success';
+                header('Location: ' . BASE_URL . '/pembeli/detail_pesanan.php?id=' . $item['order_id']);
+                exit;
+            } else {
+                error_log('Ulasan error: ' . $conn->error);
+                $error = 'Gagal menyimpan ulasan. Silakan coba lagi.';
+            }
         }
     }
 }
@@ -86,6 +91,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </div>
 
             <form method="POST">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label class="form-label">Rating Kesegaran & Kualitas *</label>
                     <div class="d-flex gap-2" style="font-size:1.2rem;">

@@ -10,24 +10,30 @@ cek_role('admin');
 $pesan = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);
 $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type']);
 
-// Toggle status akun
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'], $_GET['id'])) {
-    $uid = (int)$_GET['id'];
-    if ($_GET['action'] === 'toggle_status' && $uid > 0) {
-        $cur = $conn->prepare("SELECT status_akun, role FROM users WHERE id=?");
-        $cur->bind_param('i', $uid);
-        $cur->execute();
-        $row = $cur->get_result()->fetch_assoc();
-        if ($row && $row['role'] !== 'admin') {
-            $new_status = $row['status_akun'] === 'aktif' ? 'nonaktif' : 'aktif';
-            $upd = $conn->prepare("UPDATE users SET status_akun=? WHERE id=?");
-            $upd->bind_param('si', $new_status, $uid);
-            $upd->execute();
-            $_SESSION['flash'] = 'Status akun berhasil diubah.';
-            $_SESSION['flash_type'] = 'success';
+// Toggle status akun (POST + CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_status') {
+    if (!verify_csrf()) {
+        $_SESSION['flash'] = 'Permintaan tidak valid (token keamanan tidak cocok).';
+        $_SESSION['flash_type'] = 'danger';
+    } else {
+        $uid = (int)($_POST['id'] ?? 0);
+        if ($uid > 0) {
+            $cur = $conn->prepare("SELECT status_akun, role FROM users WHERE id=?");
+            $cur->bind_param('i', $uid);
+            $cur->execute();
+            $row = $cur->get_result()->fetch_assoc();
+            if ($row && $row['role'] !== 'admin') {
+                $new_status = $row['status_akun'] === 'aktif' ? 'nonaktif' : 'aktif';
+                $upd = $conn->prepare("UPDATE users SET status_akun=? WHERE id=?");
+                $upd->bind_param('si', $new_status, $uid);
+                $upd->execute();
+                $_SESSION['flash'] = 'Status akun berhasil diubah.';
+                $_SESSION['flash_type'] = 'success';
+            }
         }
-        header('Location: ' . BASE_URL . '/admin/pengguna.php'); exit;
     }
+    header('Location: ' . BASE_URL . '/admin/pengguna.php');
+    exit;
 }
 
 $search = trim($_GET['search'] ?? '');
@@ -84,7 +90,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         </form>
 
         <div class="table-card">
-            <table>
+            <table class="admin-dashboard-table">
                 <thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>No. HP</th><th>Status</th><th>Terdaftar</th><th>Aksi</th></tr></thead>
                 <tbody>
                 <?php while ($u = $users->fetch_assoc()): ?>
@@ -98,9 +104,14 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <td>
                             <div class="d-flex gap-1">
                                 <a href="<?= BASE_URL ?>/admin/detail_pengguna.php?id=<?= $u['id'] ?>" class="btn btn-sm btn-info">Detail</a>
-                                <a href="?action=toggle_status&id=<?= $u['id'] ?>" class="btn btn-sm <?= $u['status_akun']==='aktif'?'btn-warning':'btn-success' ?>" onclick="return confirm('Ubah status akun ini?')">
-                                    <?= $u['status_akun']==='aktif'?'Nonaktifkan':'Aktifkan' ?>
-                                </a>
+                                <form method="POST" style="display:inline;">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="toggle_status">
+                                    <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                                    <button type="submit" class="btn btn-sm <?= $u['status_akun']==='aktif'?'btn-warning':'btn-success' ?>" onclick="return confirm('Ubah status akun ini?')">
+                                        <?= $u['status_akun']==='aktif'?'Nonaktifkan':'Aktifkan' ?>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

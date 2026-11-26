@@ -7,11 +7,9 @@ if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 $page_title = 'Edit Komoditas';
 cek_role('petani');
 
-$stmt = $conn->prepare("SELECT id FROM farmer_profiles WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$fp = $stmt->get_result()->fetch_assoc();
-$farmer_id = $fp['id'] ?? 0;
+$fp = get_farmer_profile($conn, $_SESSION['user_id']);
+$farmer_id = $fp['id'];
+$is_verified = ($fp['status_verifikasi'] === 'terverifikasi');
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
@@ -30,6 +28,11 @@ if (!$c) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf()) {
+        $error = 'Sesi formulir tidak valid. Silakan muat ulang halaman dan coba lagi.';
+    } elseif (!$is_verified) {
+        $error = 'Akun usaha tani Anda belum terverifikasi oleh admin, sehingga belum dapat mengubah komoditas.';
+    } else {
     $nama      = trim($_POST['nama'] ?? '');
     $kategori  = trim($_POST['kategori'] ?? '');
     $deskripsi = trim($_POST['deskripsi'] ?? '');
@@ -39,15 +42,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Nama komoditas, kategori, dan satuan wajib diisi.';
     } else {
         $gambar = $c['gambar'];
-        if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['gambar']['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $allowed_map = [
+                'jpg'  => ['image/jpeg', 'image/pjpeg'],
+                'jpeg' => ['image/jpeg', 'image/pjpeg'],
+                'png'  => ['image/png'],
+                'webp' => ['image/webp'],
+            ];
             $max_size = 2 * 1024 * 1024; // 2MB
-            if (!in_array($ext, $allowed)) {
-                $error = 'Format file gambar harus JPG, JPEG, PNG, atau WebP.';
-            } elseif ($_FILES['gambar']['size'] > $max_size) {
-                $error = 'Ukuran file gambar maksimal 2MB.';
+            $upload_err = validate_uploaded_file($_FILES['gambar'], $allowed_map, $max_size, 'JPG, JPEG, PNG, atau WebP');
+            if ($upload_err !== null) {
+                $error = $upload_err;
             } else {
+                $ext = strtolower(pathinfo($_FILES['gambar']['name'], PATHINFO_EXTENSION));
                 $target_dir = __DIR__ . '/../uploads/products/';
                 if (!is_dir($target_dir)) {
                     mkdir($target_dir, 0777, true);
@@ -75,9 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: ' . BASE_URL . '/petani/komoditas.php');
                 exit;
             } else {
-                $error = 'Gagal memperbarui komoditas: ' . $conn->error;
+                error_log('Edit komoditas error: ' . $conn->error);
+                $error = 'Gagal memperbarui komoditas. Silakan coba lagi.';
             }
         }
+    }
     }
 }
 
@@ -104,10 +113,15 @@ require_once __DIR__ . '/../includes/navbar.php';
       <h1>Edit Komoditas</h1>
     </div>
 
+    <?php if (!$is_verified): ?>
+      <div class="alert alert-warning">⏳ Akun usaha tani Anda berstatus <strong><?= sanitize($fp['status_verifikasi']) ?></strong>. Perubahan komoditas hanya tersedia setelah verifikasi admin.</div>
+    <?php endif; ?>
+
     <?php if ($error): ?><?= alert($error, 'danger') ?><?php endif; ?>
 
     <div class="card card-body" style="max-width: 600px;">
       <form method="POST" enctype="multipart/form-data">
+        <?= csrf_field() ?>
         <div class="form-group">
           <label class="form-label">Nama Komoditas *</label>
           <input type="text" name="nama" class="form-control" required value="<?= sanitize($c['nama']) ?>">
