@@ -90,33 +90,33 @@ require_once __DIR__ . '/../includes/navbar.php';
         <div class="grid grid-2">
             <div class="card card-body">
                 <h4>Status & Ringkasan</h4>
-                <table style="font-size:.9rem;">
-                    <tr><td class="text-muted" style="width:140px; padding:.3rem 0;">Status Pesanan</td><td>
+                <table class="info-table mt-2">
+                    <tr><td>Status Pesanan</td><td>
                         <?php $sl = get_status_label($order['status']); ?>
                         <span class="badge <?= $sl['class'] ?>"><?= $sl['label'] ?></span>
                     </td></tr>
-                    <tr><td class="text-muted">Waktu Pemesanan</td><td><?= format_tanggal($order['tanggal_pesanan'], 'd M Y H:i') ?></td></tr>
-                    <tr><td class="text-muted">Total Pembayaran</td><td><strong style="color:var(--green-main);"><?= format_rupiah($order['total_amount']) ?></strong></td></tr>
-                    <tr><td class="text-muted">Status Pembayaran</td><td>
+                    <tr><td>Waktu Pemesanan</td><td><?= format_tanggal($order['tanggal_pesanan'], 'd M Y H:i') ?></td></tr>
+                    <tr><td>Total Pembayaran</td><td><strong style="color:var(--green-main);"><?= format_rupiah($order['total_amount']) ?></strong></td></tr>
+                    <tr><td>Status Pembayaran</td><td>
                         <span class="badge <?= $order['status_pembayaran'] === 'terverifikasi' ? 'badge-success' : ($order['status_pembayaran'] === 'ditolak' ? 'badge-danger' : 'badge-warning') ?>">
                             <?= ucfirst($order['status_pembayaran'] ?? 'menunggu') ?>
                         </span>
                     </td></tr>
-                    <tr><td class="text-muted">Catatan</td><td><?= sanitize($order['catatan'] ?: '-') ?></td></tr>
+                    <tr><td>Catatan</td><td><?= sanitize($order['catatan'] ?: '-') ?></td></tr>
                 </table>
             </div>
 
             <div class="card card-body">
                 <h4>Informasi Pengambilan / Pengantaran</h4>
-                <table style="font-size:.9rem;">
-                    <tr><td class="text-muted" style="width:140px; padding:.3rem 0;">Metode</td><td><strong><?= ucfirst($order['metode'] ?? 'ambil') ?></strong></td></tr>
+                <table class="info-table mt-2">
+                    <tr><td>Metode</td><td><strong><?= ucfirst($order['metode'] ?? 'ambil') ?></strong></td></tr>
                     <?php if (($order['metode'] ?? '') === 'ambil'): ?>
-                        <tr><td class="text-muted">Titik Pengambilan</td><td><?= sanitize($order['nama_titik'] ?: '-') ?><br><small class="text-muted"><?= sanitize($order['alamat_titik'] ?: '') ?></small></td></tr>
+                        <tr><td>Titik Pengambilan</td><td><?= sanitize($order['nama_titik'] ?: '-') ?><br><small class="text-muted"><?= sanitize($order['alamat_titik'] ?: '') ?></small></td></tr>
                     <?php else: ?>
-                        <tr><td class="text-muted">Alamat Tujuan</td><td><?= sanitize($order['alamat_tujuan'] ?: '-') ?></td></tr>
+                        <tr><td>Alamat Tujuan</td><td><?= sanitize($order['alamat_tujuan'] ?: '-') ?></td></tr>
                     <?php endif; ?>
-                    <tr><td class="text-muted">Jadwal</td><td><?= $order['jadwal'] ? format_tanggal($order['jadwal'], 'd M Y H:i') : 'Menyesuaikan masa panen' ?></td></tr>
-                    <tr><td class="text-muted">Status Eksekusi</td><td><span class="badge badge-secondary"><?= ucfirst(str_replace('_',' ',$order['delivery_status'] ?? 'menunggu')) ?></span></td></tr>
+                    <tr><td>Jadwal</td><td><?= $order['jadwal'] ? format_tanggal($order['jadwal'], 'd M Y H:i') : 'Menyesuaikan masa panen' ?></td></tr>
+                    <tr><td>Status Eksekusi</td><td><span class="badge badge-secondary"><?= ucfirst(str_replace('_',' ',$order['delivery_status'] ?? 'menunggu')) ?></span></td></tr>
                 </table>
             </div>
         </div>
@@ -126,6 +126,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             <div style="padding:1rem 1.2rem; border-bottom:1px solid var(--gray-200);">
                 <h3 style="margin:0;">Rincian Komoditas</h3>
             </div>
+            <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -162,6 +163,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <?php endwhile; ?>
                 </tbody>
             </table>
+            </div>
         </div>
     </main>
 </div>

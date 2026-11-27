@@ -109,32 +109,36 @@ require_once __DIR__ . '/../includes/navbar.php';
         </thead>
         <tbody>
         <?php if ($batches->num_rows > 0): ?>
-          <?php while ($b = $batches->fetch_assoc()): ?>
+          <?php while ($b = $batches->fetch_assoc()):
+              $fid = 'rescue-form-' . (int)$b['id'];
+          ?>
           <tr>
-            <form method="POST">
-              <?= csrf_field() ?>
-              <input type="hidden" name="batch_id" value="<?= $b['id'] ?>">
-              <td><strong><?= sanitize($b['komoditas']) ?></strong></td>
-              <td><?= (float)$b['stok_tersedia'] ?> <?= sanitize($b['satuan']) ?></td>
-              <td><?= format_rupiah($b['harga_normal']) ?></td>
-              <td>
-                <label style="display:flex; align-items:center; gap:.4rem; cursor:pointer;">
-                  <input type="checkbox" name="rescue_aktif" value="1" <?= $b['rescue_aktif'] ? 'checked' : '' ?>>
-                  <span class="badge <?= $b['rescue_aktif'] ? 'badge-rescue' : 'badge-secondary' ?>">
-                    <?= $b['rescue_aktif'] ? 'Aktif' : 'Nonaktif' ?>
-                  </span>
-                </label>
-              </td>
-              <td>
-                <input type="number" name="harga_rescue" class="form-control" style="width:130px; font-size:.85rem; padding:.3rem;" placeholder="Harga Rp" value="<?= sanitize($b['harga_rescue'] ?? '') ?>">
-              </td>
-              <td>
-                <input type="datetime-local" name="batas_rescue" class="form-control" style="width:180px; font-size:.85rem; padding:.3rem;" value="<?= $b['batas_rescue'] ? date('Y-m-d\TH:i', strtotime($b['batas_rescue'])) : '' ?>">
-              </td>
-              <td>
-                <button type="submit" class="btn btn-sm btn-orange" <?= !$is_verified ? 'disabled' : '' ?>>Update</button>
-              </td>
-            </form>
+            <td>
+              <form id="<?= $fid ?>" method="POST" style="display:none;">
+                <?= csrf_field() ?>
+                <input type="hidden" name="batch_id" value="<?= (int)$b['id'] ?>">
+              </form>
+              <strong><?= sanitize($b['komoditas']) ?></strong>
+            </td>
+            <td><?= (float)$b['stok_tersedia'] ?> <?= sanitize($b['satuan']) ?></td>
+            <td><?= format_rupiah($b['harga_normal']) ?></td>
+            <td>
+              <label style="display:flex; align-items:center; gap:.4rem; cursor:pointer;">
+                <input type="checkbox" form="<?= $fid ?>" name="rescue_aktif" value="1" <?= $b['rescue_aktif'] ? 'checked' : '' ?>>
+                <span class="badge <?= $b['rescue_aktif'] ? 'badge-rescue' : 'badge-secondary' ?>">
+                  <?= $b['rescue_aktif'] ? 'Aktif' : 'Nonaktif' ?>
+                </span>
+              </label>
+            </td>
+            <td>
+              <input type="number" form="<?= $fid ?>" name="harga_rescue" class="form-control" style="width:130px; font-size:.85rem; padding:.35rem .5rem;" placeholder="Harga Rp" value="<?= sanitize($b['harga_rescue'] ?? '') ?>">
+            </td>
+            <td>
+              <input type="datetime-local" form="<?= $fid ?>" name="batas_rescue" class="form-control" style="width:185px; font-size:.85rem; padding:.35rem .5rem;" value="<?= $b['batas_rescue'] ? date('Y-m-d\TH:i', strtotime($b['batas_rescue'])) : '' ?>">
+            </td>
+            <td>
+              <button type="submit" form="<?= $fid ?>" class="btn btn-sm btn-orange" <?= !$is_verified ? 'disabled' : '' ?>>Update</button>
+            </td>
           </tr>
           <?php endwhile; ?>
         <?php else: ?>

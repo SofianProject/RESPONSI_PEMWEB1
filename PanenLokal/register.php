@@ -77,23 +77,24 @@ require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/includes/navbar.php';
 ?>
 
-<section class="section">
+<section class="section auth-section">
     <div class="container">
-        <div class="form-card" style="max-width:560px;">
+        <div class="form-card auth-card auth-card-register">
             <h2>🌿 Daftar Akun</h2>
+            <p class="auth-subtitle">Buat akun untuk mulai pre-order atau menjual hasil tani</p>
             <?php if ($error):   ?><?= alert($error, 'danger')  ?><?php endif; ?>
             <?php if ($success): ?><?= alert($success, 'success') ?><div class="text-center mt-2"><a href="<?= BASE_URL ?>/login.php" class="btn btn-primary">Login Sekarang</a></div><?php endif; ?>
             <?php if (!$success): ?>
             <form id="register-form" method="POST">
                 <?= csrf_field() ?>
-                <div class="form-row">
+                <div class="auth-form-grid">
                     <div class="form-group">
                         <label class="form-label" for="nama_lengkap">Nama Lengkap *</label>
-                        <input type="text" id="nama_lengkap" name="nama_lengkap" class="form-control" value="<?= sanitize($_POST['nama_lengkap'] ?? '') ?>" required>
+                        <input type="text" id="nama_lengkap" name="nama_lengkap" class="form-control" value="<?= sanitize($_POST['nama_lengkap'] ?? '') ?>" placeholder="Contoh: Siti Rahmawati" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="username">Username *</label>
-                        <input type="text" id="username" name="username" class="form-control" value="<?= sanitize($_POST['username'] ?? '') ?>" required autocomplete="username">
+                        <input type="text" id="username" name="username" class="form-control" value="<?= sanitize($_POST['username'] ?? '') ?>" placeholder="Contoh: siti_rahma" required autocomplete="username">
                     </div>
                 </div>
                 <div class="form-group">
@@ -104,39 +105,51 @@ require_once __DIR__ . '/includes/navbar.php';
                     </select>
                 </div>
 
-                <div id="petani-fields" style="display:none;">
+                <div id="petani-fields" class="auth-petani-box" style="display:none;">
                     <div class="form-group">
                         <label class="form-label" for="nama_usaha">Nama Usaha / Kelompok Tani *</label>
-                        <input type="text" id="nama_usaha" name="nama_usaha" class="form-control" value="<?= sanitize($_POST['nama_usaha'] ?? '') ?>">
+                        <input type="text" id="nama_usaha" name="nama_usaha" class="form-control" value="<?= sanitize($_POST['nama_usaha'] ?? '') ?>" placeholder="Contoh: Kelompok Tani Makmur">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="deskripsi_usaha">Deskripsi Usaha</label>
-                        <textarea id="deskripsi_usaha" name="deskripsi_usaha" class="form-control" rows="3"><?= sanitize($_POST['deskripsi_usaha'] ?? '') ?></textarea>
+                        <textarea id="deskripsi_usaha" name="deskripsi_usaha" class="form-control" rows="3" placeholder="Jelaskan singkat komoditas atau metode tanam Anda..."><?= sanitize($_POST['deskripsi_usaha'] ?? '') ?></textarea>
                     </div>
                 </div>
 
-                <div class="form-row">
+                <div class="auth-form-grid">
                     <div class="form-group">
                         <label class="form-label" for="password">Password *</label>
-                        <input type="password" id="password" name="password" class="form-control" required autocomplete="new-password">
+                        <div class="password-input-wrap">
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Minimal 6 karakter" required autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" id="toggle-password" data-target="password" aria-label="Tampilkan password" aria-pressed="false">
+                                <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
+                            </button>
+                        </div>
                         <div class="form-hint">Min. 6 karakter</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="confirm_password">Konfirmasi Password *</label>
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required autocomplete="new-password">
+                        <div class="password-input-wrap">
+                            <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Ketik ulang password" required autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" id="toggle-confirm-password" data-target="confirm_password" aria-label="Tampilkan konfirmasi password" aria-pressed="false">
+                                <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="form-row">
+                <div class="auth-form-grid">
                     <div class="form-group">
                         <label class="form-label" for="no_hp">No. HP</label>
-                        <input type="text" id="no_hp" name="no_hp" class="form-control" value="<?= sanitize($_POST['no_hp'] ?? '') ?>">
+                        <input type="text" id="no_hp" name="no_hp" class="form-control" value="<?= sanitize($_POST['no_hp'] ?? '') ?>" placeholder="0812xxxxxxxx">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="alamat">Alamat</label>
-                        <input type="text" id="alamat" name="alamat" class="form-control" value="<?= sanitize($_POST['alamat'] ?? '') ?>">
+                        <input type="text" id="alamat" name="alamat" class="form-control" value="<?= sanitize($_POST['alamat'] ?? '') ?>" placeholder="Jl. Melati No. 10, Kota Baru">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-block btn-lg">Daftar Sekarang</button>
+                <button type="submit" class="btn btn-primary btn-block btn-lg auth-submit-btn">Daftar Sekarang</button>
             </form>
             <hr class="divider">
             <p class="text-center text-muted" style="font-size:.9rem;">Sudah punya akun? <a href="<?= BASE_URL ?>/login.php">Login di sini</a></p>

@@ -60,7 +60,7 @@ $stmt = $conn->prepare("
     JOIN harvest_batches hb ON oi.batch_id = hb.id
     JOIN commodities c ON hb.commodity_id = c.id
     WHERE c.farmer_id = ?
-    GROUP BY o.id
+    GROUP BY o.id, o.kode_pesanan, o.total_amount, o.status, o.tanggal_pesanan
     ORDER BY o.tanggal_pesanan DESC
     LIMIT 5
 ");

@@ -35,7 +35,7 @@ $sql = "
     JOIN harvest_batches hb ON hb.id = oi.batch_id
     JOIN commodities c ON c.id = hb.commodity_id
     WHERE $where
-    GROUP BY o.id
+    GROUP BY o.id, o.kode_pesanan, o.tanggal_pesanan, o.status, u.nama_lengkap
     ORDER BY o.tanggal_pesanan DESC
 ";
 $stmt2 = $conn->prepare($sql);

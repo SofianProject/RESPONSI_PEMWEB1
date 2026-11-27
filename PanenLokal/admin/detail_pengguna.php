@@ -73,24 +73,24 @@ require_once __DIR__ . '/../includes/navbar.php';
         <div class="grid grid-2">
             <div class="card card-body">
                 <h3>Informasi Akun</h3>
-                <table style="font-size:.9rem;" class="mt-2">
-                    <tr><td class="text-muted" style="width:130px; padding:.3rem 0;">Nama Lengkap</td><td><strong><?= sanitize($user_data['nama_lengkap']) ?></strong></td></tr>
-                    <tr><td class="text-muted">Username</td><td><?= sanitize($user_data['username']) ?></td></tr>
-                    <tr><td class="text-muted">Role</td><td><span class="badge <?= $user_data['role']==='petani'?'badge-primary':'badge-info' ?>"><?= ucfirst($user_data['role']) ?></span></td></tr>
-                    <tr><td class="text-muted">Nomor HP</td><td><?= sanitize($user_data['no_hp'] ?: '-') ?></td></tr>
-                    <tr><td class="text-muted">Alamat</td><td><?= sanitize($user_data['alamat'] ?: '-') ?></td></tr>
-                    <tr><td class="text-muted">Status Akun</td><td><span class="badge <?= $user_data['status_akun']==='aktif'?'badge-success':'badge-danger' ?>"><?= ucfirst($user_data['status_akun']) ?></span></td></tr>
-                    <tr><td class="text-muted">Terdaftar Pada</td><td><?= format_tanggal($user_data['created_at'], 'd M Y H:i') ?></td></tr>
+                <table class="info-table mt-2">
+                    <tr><td>Nama Lengkap</td><td><strong><?= sanitize($user_data['nama_lengkap']) ?></strong></td></tr>
+                    <tr><td>Username</td><td><?= sanitize($user_data['username']) ?></td></tr>
+                    <tr><td>Role</td><td><span class="badge <?= $user_data['role']==='petani'?'badge-primary':'badge-info' ?>"><?= ucfirst($user_data['role']) ?></span></td></tr>
+                    <tr><td>Nomor HP</td><td><?= sanitize($user_data['no_hp'] ?: '-') ?></td></tr>
+                    <tr><td>Alamat</td><td><?= sanitize($user_data['alamat'] ?: '-') ?></td></tr>
+                    <tr><td>Status Akun</td><td><span class="badge <?= $user_data['status_akun']==='aktif'?'badge-success':'badge-danger' ?>"><?= ucfirst($user_data['status_akun']) ?></span></td></tr>
+                    <tr><td>Terdaftar Pada</td><td><?= format_tanggal($user_data['created_at'], 'd M Y H:i') ?></td></tr>
                 </table>
             </div>
 
             <?php if ($user_data['role'] === 'petani'): ?>
             <div class="card card-body">
                 <h3>Profil Usaha Tani</h3>
-                <table style="font-size:.9rem;" class="mt-2">
-                    <tr><td class="text-muted" style="width:130px; padding:.3rem 0;">Nama Usaha</td><td><strong><?= sanitize($user_data['nama_usaha'] ?: '-') ?></strong></td></tr>
-                    <tr><td class="text-muted">Deskripsi</td><td><?= nl2br(sanitize($user_data['deskripsi_usaha'] ?: '-')) ?></td></tr>
-                    <tr><td class="text-muted">Status Verifikasi</td><td>
+                <table class="info-table mt-2">
+                    <tr><td>Nama Usaha</td><td><strong><?= sanitize($user_data['nama_usaha'] ?: '-') ?></strong></td></tr>
+                    <tr><td>Deskripsi</td><td><?= nl2br(sanitize($user_data['deskripsi_usaha'] ?: '-')) ?></td></tr>
+                    <tr><td>Status Verifikasi</td><td>
                         <span class="badge <?= $user_data['status_verifikasi']==='terverifikasi'?'badge-success':($user_data['status_verifikasi']==='ditolak'?'badge-danger':'badge-warning') ?>">
                             <?= ucfirst($user_data['status_verifikasi'] ?? 'menunggu') ?>
                         </span>

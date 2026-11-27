@@ -45,7 +45,7 @@ $top_farmers = $conn->query("
     JOIN harvest_batches hb ON hb.commodity_id = c.id
     JOIN order_items oi ON oi.batch_id = hb.id
     JOIN orders o ON o.id = oi.order_id AND o.status = 'selesai'
-    GROUP BY fp.id
+    GROUP BY fp.id, fp.nama_usaha, u.nama_lengkap
     ORDER BY omzet DESC
     LIMIT 5
 ");
