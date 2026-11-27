@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- Hash di-generate dengan: password_hash('admin123', PASSWORD_DEFAULT)
 INSERT IGNORE INTO users (id, nama_lengkap, username, password_hash, role, no_hp, alamat, status_akun)
 VALUES 
-    (1, 'Administrator', 'admin', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B/u3AgG', 'admin', '08123456789', 'Kantor PanenLokal Pusat', 'aktif'),
+    (1, 'Administrator', 'admin', '$2y$10$aU9RdFBGgaOEHh1HE8o0ueGW.LwpO9JvJ00E/1ttc5FLPBsL2jA5m', 'admin', '08123456789', 'Kantor PanenLokal Pusat', 'aktif'),
     (2, 'Pak Budi Pranoto', 'petani1', '$2y$10$IsvKjdvD8fhXkl/etyoyVeC1Yh9l2PCGjgscubNs5jrBF6oCIHi3i', 'petani', '08571234567', 'Desa Sukamaju RT 02/05', 'aktif'),
     (3, 'Siti Rahmawati', 'pembeli1', '$2y$10$IsvKjdvD8fhXkl/etyoyVeC1Yh9l2PCGjgscubNs5jrBF6oCIHi3i', 'pembeli', '08781234567', 'Jl. Kenanga No. 12, Kota Baru', 'aktif');
 
