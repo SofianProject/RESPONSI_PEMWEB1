@@ -13,13 +13,11 @@ $pesan_tipe = $_SESSION['flash_type'] ?? 'success'; unset($_SESSION['flash_type'
 
 $sql = "
     SELECT o.*, 
-           COUNT(oi.id) AS total_item,
+           (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS total_item,
            d.metode, d.status AS delivery_status
     FROM orders o
-    LEFT JOIN order_items oi ON oi.order_id = o.id
     LEFT JOIN deliveries d ON d.order_id = o.id
     WHERE o.buyer_id = ?
-    GROUP BY o.id
     ORDER BY o.tanggal_pesanan DESC
 ";
 $stmt = $conn->prepare($sql);

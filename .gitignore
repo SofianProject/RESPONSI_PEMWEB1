@@ -1,0 +1,12 @@
+# Kredensial database & konfigurasi lokal/production
+.env
+.env.*
+*.env
+PanenLokal/config/config.local.php
+PanenLokal/config/config.production.php
+
+# Folder backup, paket deploy, & file log sementara
+backups/
+panenlokal_deploy.zip
+*.log
+*.bak

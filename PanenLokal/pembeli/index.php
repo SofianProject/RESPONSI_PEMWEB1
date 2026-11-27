@@ -1,9 +1,9 @@
 <?php
-if (!defined('BASE_URL')) define('BASE_URL', '/RESPONSI_PEMWEB1/PanenLokal');
-if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
+if (!defined('BASE_URL')) define('BASE_URL', '/RESPONSI_PEMWEB1/PanenLokal');
+if (!defined('SITE_NAME')) define('SITE_NAME', 'PanenLokal');
 
 cek_role('pembeli');
 

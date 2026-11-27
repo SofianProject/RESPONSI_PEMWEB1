@@ -255,18 +255,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.addEventListener('submit', validateLogin);
 
-    // Toggle show/hide password on login
-    const togglePwBtn = document.getElementById('toggle-password');
-    const pwInput = document.getElementById('password');
-    if (togglePwBtn && pwInput) {
-        togglePwBtn.addEventListener('click', function () {
-            const show = pwInput.type === 'password';
-            pwInput.type = show ? 'text' : 'password';
-            togglePwBtn.classList.toggle('is-visible', show);
-            togglePwBtn.setAttribute('aria-pressed', show ? 'true' : 'false');
-            togglePwBtn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+    // Toggle show/hide password (login & register)
+    document.querySelectorAll('.password-toggle-btn').forEach(function (btn) {
+        const targetId = btn.getAttribute('data-target') || 'password';
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        btn.addEventListener('click', function () {
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.classList.toggle('is-visible', show);
+            btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+            btn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
         });
-    }
+    });
 
     // Register form
     const regForm = document.getElementById('register-form');

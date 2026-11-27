@@ -75,7 +75,7 @@ require_once __DIR__ . '/includes/navbar.php';
                     <tr><td>Interaktif</td><td>JavaScript</td><td>Validasi form, countdown, preview harga</td></tr>
                     <tr><td>Backend</td><td>PHP Native</td><td>Logika bisnis, CRUD, session</td></tr>
                     <tr><td>Database</td><td>MySQL/MariaDB</td><td>Penyimpanan data relasional</td></tr>
-                    <tr><td>Server</td><td>XAMPP (Apache)</td><td>Server lokal untuk pengembangan</td></tr>
+                    <tr><td>Server</td><td>Apache / PHP Web Server</td><td>Lingkungan server pengembangan dan produksi</td></tr>
                 </tbody>
             </table>
         </div>
@@ -84,7 +84,7 @@ require_once __DIR__ . '/includes/navbar.php';
             <h3 style="color:#fff;">Bergabunglah Bersama Kami</h3>
             <p style="opacity:.9;">Bersama kita wujudkan sistem pangan lokal yang lebih adil dan berkelanjutan.</p>
             <div class="d-flex gap-2 flex-wrap justify-center mt-1">
-                <a href="<?= BASE_URL ?>/register.php" class="btn" style="background:#fff;color:var(--green-dark);">Daftar Sekarang</a>
+                <a href="<?= BASE_URL ?>/register.php" class="btn btn-hero-primary">Daftar Sekarang</a>
                 <a href="<?= BASE_URL ?>/katalog.php" class="btn btn-outline-primary">Lihat Katalog</a>
             </div>
         </div>

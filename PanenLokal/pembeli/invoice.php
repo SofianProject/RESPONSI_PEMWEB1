@@ -104,6 +104,7 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
+        <div class="table-responsive">
         <table>
             <thead>
                 <tr>
@@ -135,6 +136,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </tr>
             </tfoot>
         </table>
+        </div>
 
         <div style="margin-top:2rem; padding-top:1rem; border-top:1px dashed var(--gray-300); text-align:center; font-size:.85rem; color:var(--gray-500);">
             Terima kasih telah berbelanja hasil tani lokal dan mendukung ketahanan pangan bersama PanenLokal.

@@ -106,24 +106,24 @@ require_once __DIR__ . '/../includes/navbar.php';
     <div class="grid grid-2">
       <div class="card card-body">
         <h4>Informasi Pemesan</h4>
-        <table style="font-size:.9rem;">
-          <tr><td class="text-muted" style="width:130px; padding:.3rem 0;">Nama Pembeli</td><td><strong><?= sanitize($order['nama_pembeli']) ?></strong></td></tr>
-          <tr><td class="text-muted">No. Kontak</td><td><?= sanitize($order['hp_pembeli'] ?: '-') ?></td></tr>
-          <tr><td class="text-muted">Tanggal Pesan</td><td><?= format_tanggal($order['tanggal_pesanan'], 'd M Y H:i') ?></td></tr>
-          <tr><td class="text-muted">Catatan Pembeli</td><td><?= sanitize($order['catatan'] ?: '-') ?></td></tr>
+        <table class="info-table mt-2">
+          <tr><td>Nama Pembeli</td><td><strong><?= sanitize($order['nama_pembeli']) ?></strong></td></tr>
+          <tr><td>No. Kontak</td><td><?= sanitize($order['hp_pembeli'] ?: '-') ?></td></tr>
+          <tr><td>Tanggal Pesan</td><td><?= format_tanggal($order['tanggal_pesanan'], 'd M Y H:i') ?></td></tr>
+          <tr><td>Catatan Pembeli</td><td><?= sanitize($order['catatan'] ?: '-') ?></td></tr>
         </table>
       </div>
 
       <div class="card card-body">
         <h4>Pengiriman / Pengambilan</h4>
-        <table style="font-size:.9rem;">
-          <tr><td class="text-muted" style="width:130px; padding:.3rem 0;">Metode</td><td><strong><?= ucfirst($order['metode'] ?? 'ambil') ?></strong></td></tr>
+        <table class="info-table mt-2">
+          <tr><td>Metode</td><td><strong><?= ucfirst($order['metode'] ?? 'ambil') ?></strong></td></tr>
           <?php if (($order['metode'] ?? '') === 'ambil'): ?>
-            <tr><td class="text-muted">Titik Ambil</td><td><?= sanitize($order['nama_titik']) ?><br><small class="text-muted"><?= sanitize($order['alamat_titik']) ?></small></td></tr>
+            <tr><td>Titik Ambil</td><td><?= sanitize($order['nama_titik']) ?><br><small class="text-muted"><?= sanitize($order['alamat_titik']) ?></small></td></tr>
           <?php else: ?>
-            <tr><td class="text-muted">Alamat Antar</td><td><?= sanitize($order['alamat_tujuan'] ?: '-') ?></td></tr>
+            <tr><td>Alamat Antar</td><td><?= sanitize($order['alamat_tujuan'] ?: '-') ?></td></tr>
           <?php endif; ?>
-          <tr><td class="text-muted">Status Pesanan</td><td>
+          <tr><td>Status Pesanan</td><td>
             <?php $sl = get_status_label($order['status']); ?>
             <span class="badge <?= $sl['class'] ?>"><?= $sl['label'] ?></span>
           </td></tr>
@@ -136,6 +136,7 @@ require_once __DIR__ . '/../includes/navbar.php';
       <div style="padding:1rem 1.2rem; border-bottom:1px solid var(--gray-200);">
         <h3 style="margin:0;">Produk yang Anda Siapkan</h3>
       </div>
+      <div class="table-responsive">
       <table>
         <thead>
           <tr>
@@ -171,6 +172,7 @@ require_once __DIR__ . '/../includes/navbar.php';
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
 
     <!-- Tombol Aksi Status oleh Petani -->

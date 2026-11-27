@@ -96,21 +96,21 @@ require_once __DIR__ . '/../includes/navbar.php';
         <div class="grid grid-2">
             <div class="card card-body">
                 <h4>Info Pembeli</h4>
-                <table style="font-size:.9rem;">
-                    <tr><td class="text-muted" style="padding:.3rem .5rem .3rem 0;width:140px;">Nama</td><td><?= sanitize($pay['nama_lengkap']) ?></td></tr>
-                    <tr><td class="text-muted">Username</td><td><?= sanitize($pay['username']) ?></td></tr>
-                    <tr><td class="text-muted">No. HP</td><td><?= sanitize($pay['no_hp'] ?: '-') ?></td></tr>
-                    <tr><td class="text-muted">Alamat</td><td><?= sanitize($pay['alamat'] ?: '-') ?></td></tr>
+                <table class="info-table mt-2">
+                    <tr><td>Nama</td><td><?= sanitize($pay['nama_lengkap']) ?></td></tr>
+                    <tr><td>Username</td><td><?= sanitize($pay['username']) ?></td></tr>
+                    <tr><td>No. HP</td><td><?= sanitize($pay['no_hp'] ?: '-') ?></td></tr>
+                    <tr><td>Alamat</td><td><?= sanitize($pay['alamat'] ?: '-') ?></td></tr>
                 </table>
             </div>
             <div class="card card-body">
                 <h4>Info Pembayaran</h4>
-                <table style="font-size:.9rem;">
-                    <tr><td class="text-muted" style="padding:.3rem .5rem .3rem 0;width:140px;">Nominal</td><td class="text-bold"><?= format_rupiah($pay['nominal']) ?></td></tr>
-                    <tr><td class="text-muted">Total Pesanan</td><td><?= format_rupiah($pay['total_amount']) ?></td></tr>
-                    <tr><td class="text-muted">Status Bayar</td><td><span class="badge <?= $pay['status_pembayaran']==='menunggu'?'badge-warning':($pay['status_pembayaran']==='terverifikasi'?'badge-success':'badge-danger') ?>"><?= ucfirst($pay['status_pembayaran']) ?></span></td></tr>
-                    <tr><td class="text-muted">Tanggal</td><td><?= format_tanggal($pay['created_at'], 'd M Y H:i') ?></td></tr>
-                    <?php if ($pay['catatan_admin']): ?><tr><td class="text-muted">Catatan</td><td><?= sanitize($pay['catatan_admin']) ?></td></tr><?php endif; ?>
+                <table class="info-table mt-2">
+                    <tr><td>Nominal</td><td class="text-bold"><?= format_rupiah($pay['nominal']) ?></td></tr>
+                    <tr><td>Total Pesanan</td><td><?= format_rupiah($pay['total_amount']) ?></td></tr>
+                    <tr><td>Status Bayar</td><td><span class="badge <?= $pay['status_pembayaran']==='menunggu'?'badge-warning':($pay['status_pembayaran']==='terverifikasi'?'badge-success':'badge-danger') ?>"><?= ucfirst($pay['status_pembayaran']) ?></span></td></tr>
+                    <tr><td>Tanggal</td><td><?= format_tanggal($pay['created_at'], 'd M Y H:i') ?></td></tr>
+                    <?php if ($pay['catatan_admin']): ?><tr><td>Catatan</td><td><?= sanitize($pay['catatan_admin']) ?></td></tr><?php endif; ?>
                 </table>
             </div>
         </div>
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             <?php if ($pay['bukti_pembayaran']): ?>
                 <?php $ext = strtolower(pathinfo($pay['bukti_pembayaran'], PATHINFO_EXTENSION)); ?>
                 <?php if (in_array($ext, ['jpg','jpeg','png','webp'])): ?>
-                    <img src="<?= BASE_URL ?>/uploads/payments/<?= sanitize($pay['bukti_pembayaran']) ?>" alt="Bukti" style="max-width:500px;border-radius:var(--radius);border:1px solid var(--gray-200);">
+                    <img src="<?= BASE_URL ?>/uploads/payments/<?= sanitize($pay['bukti_pembayaran']) ?>" alt="Bukti" style="width:100%;max-width:500px;height:auto;border-radius:var(--radius);border:1px solid var(--gray-200);">
                 <?php else: ?>
                     <a href="<?= BASE_URL ?>/uploads/payments/<?= sanitize($pay['bukti_pembayaran']) ?>" target="_blank" class="btn btn-info">📄 Lihat File PDF</a>
                 <?php endif; ?>
@@ -132,6 +132,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
         <!-- Item pesanan -->
         <div class="table-card mt-3">
+            <div class="table-responsive">
             <table>
                 <thead><tr><th>Produk</th><th>Qty</th><th>Satuan</th><th>Harga/Satuan</th><th>Subtotal</th><th>Rescue</th></tr></thead>
                 <tbody>
@@ -147,6 +148,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <?php endwhile; ?>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Form verifikasi -->

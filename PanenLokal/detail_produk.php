@@ -108,11 +108,11 @@ require_once __DIR__ . '/includes/navbar.php';
                         <div style="font-size:1.8rem;font-weight:800;color:var(--green-main);margin:1rem 0;"><?= format_rupiah($p['harga_normal']) ?><span style="font-size:1rem;font-weight:400;">/<?= sanitize($p['satuan']) ?></span></div>
                     <?php endif; ?>
 
-                    <table style="font-size:.9rem;width:100%;margin-bottom:1rem;">
-                        <tr><td style="padding:.3rem 0;color:var(--gray-700);width:140px;">📅 Estimasi Panen</td><td><?= format_tanggal($p['tanggal_estimasi_panen']) ?></td></tr>
-                        <tr><td style="padding:.3rem 0;color:var(--gray-700);">📦 Stok Tersedia</td><td><?= (float)$p['stok_tersedia'] ?> <?= sanitize($p['satuan']) ?></td></tr>
+                    <table class="info-table mb-2">
+                        <tr><td>📅 Estimasi Panen</td><td><?= format_tanggal($p['tanggal_estimasi_panen']) ?></td></tr>
+                        <tr><td>📦 Stok Tersedia</td><td><?= (float)$p['stok_tersedia'] ?> <?= sanitize($p['satuan']) ?></td></tr>
                         <?php if ($p['nama_lahan']): ?>
-                        <tr><td style="padding:.3rem 0;color:var(--gray-700);">🌍 Lahan</td><td><?= sanitize($p['nama_lahan']) ?></td></tr>
+                        <tr><td>🌍 Lahan</td><td><?= sanitize($p['nama_lahan']) ?></td></tr>
                         <?php endif; ?>
                     </table>
 
